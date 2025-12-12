@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug iOS",
+      "cwd": "${workspaceFolder}",
+      "type": "reactnative",
+      "request": "launch",
+      "platform": "ios",
+      "target": "iPhone 15 Pro"
+    },
+    {
+      "name": "Attach to Packager",
+      "cwd": "${workspaceFolder}",
+      "type": "reactnative",
+      "request": "attach"
+    },
+    {
+      "name": "Debug Tests",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": ["--runInBand", "--no-cache", "--watchAll=false"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

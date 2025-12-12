@@ -1,0 +1,76 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Metro",
+      "type": "shell",
+      "command": "npm start",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting Metro",
+          "endsPattern": "Loading dependency graph"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run iOS",
+      "type": "shell",
+      "command": "npm run ios",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Tests",
+      "type": "shell",
+      "command": "npm test",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Run Tests (Watch)",
+      "type": "shell",
+      "command": "npm run test:watch",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Test Coverage",
+      "type": "shell",
+      "command": "npm run test:coverage",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Lint",
+      "type": "shell",
+      "command": "npm run lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}
