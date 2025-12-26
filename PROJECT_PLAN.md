@@ -345,12 +345,12 @@ GameTracker/
 
 ---
 
-### Phase 1.5: Hot Updater OTA Updates
+### Phase 1.5: Hot Updater OTA Updates ✅ COMPLETE
 **Goal:** Enable over-the-air JavaScript updates without rebuilding the native app
 
 **Why:** App is sideloaded via AltServer. Hot Updater allows pushing JS updates without rebuilding and re-sideloading.
 
-**Status:** Partially Complete
+**Status:** Complete
 
 **Tasks:**
 1. ✅ Install `@hot-updater/react-native` package
@@ -358,34 +358,47 @@ GameTracker/
 3. ✅ Configure `hot-updater.config.ts` for Supabase
 4. ✅ Update iOS native code (pod install)
 5. ✅ Wrap root App component with `HotUpdater.wrap()`
-6. [ ] Create Supabase project (free tier)
-7. [ ] Create storage bucket for bundles
-8. [ ] Run database migrations for bundles table
-9. [ ] Add Supabase credentials to `.env.hotupdater`
-10. [ ] Deploy Supabase Edge Function for update endpoint
-11. [ ] Test OTA update flow
-12. [ ] Document Hot Updater workflow in README
+6. ✅ Create Supabase project (free tier)
+7. ✅ Create storage bucket for bundles with RLS policies
+8. ✅ Run database migrations for bundles table with RLS policies
+9. ✅ Add Supabase credentials to `.env.hotupdater`
+10. ✅ Deploy Supabase Edge Function for update endpoint
+11. ✅ Test OTA update flow (verified v1 → v2 update)
+12. ✅ Add comprehensive test suite with GitHub Actions CI
 
-**Supabase Setup Required:**
-1. Create project at https://supabase.com
-2. Create storage bucket named `hot-updater`
-3. Copy project URL and anon key to `.env.hotupdater`
-4. Run: `npx hot-updater supabase init` (creates tables)
-5. Deploy edge function: `npx hot-updater supabase deploy`
+**Supabase Configuration:**
+- Project URL: https://juorsgyjsgablrgdqpyp.supabase.co
+- Edge Function: `/functions/v1/hot-updater`
+- Storage bucket: `hot-updater`
+- RLS policies configured for INSERT and SELECT on both storage and bundles table
 
-**Usage after setup:**
+**Usage:**
 ```bash
 # Deploy an update
-npx hot-updater deploy -p ios -m "Bug fix"
+npx hot-updater deploy -p ios -m "Your message" -t "0.1.0"
 
-# Check deployment status
-npx hot-updater console
+# Run all tests
+npm run test:all
 ```
 
-**Acceptance Criteria:**
+**Files Added:**
+- `hot-updater.config.ts` - Hot Updater configuration
+- `.env.hotupdater` - Supabase credentials (gitignored)
+- `.env.hotupdater.example` - Credential template
+- `supabase/functions/hot-updater/` - Edge function code
+- `supabase-setup.sql` - Database migration reference
+- `.github/workflows/test.yml` - CI workflow
+- `__mocks__/@hot-updater/react-native.js` - Jest mock
+
+**Test Coverage:**
+- Jest: App rendering tests with HotUpdater mock
+- Deno: Edge function semver filtering logic (10 test cases)
+- GitHub Actions: Runs both test suites on push/PR
+
+**Acceptance Criteria:** ✅ All met
 - App can receive OTA updates without AltServer rebuild
-- Updates apply on next app launch
-- Release workflow is documented
+- Updates apply on next app launch (download → restart → apply)
+- Comprehensive test suite with CI
 
 ---
 
@@ -934,10 +947,10 @@ module.exports = {
 ## Session Tracking
 
 ### Current Session Status
-- **Date**: 2025-12-25
-- **Phase**: Phase 1.5 - Hot Updater OTA Updates
-- **Last Completed**: Hot Updater client installed and configured
-- **Next Steps**: Create Supabase project, complete OTA setup, then continue to Phase 2
+- **Date**: 2025-12-26
+- **Phase**: Phase 1.5 Complete, Ready for Phase 2
+- **Last Completed**: Hot Updater OTA updates fully working with tests and CI
+- **Next Steps**: Begin Phase 2 - Data Layer & Storage
 
 ### Session Notes
 Use this section to track progress across multiple sessions:
@@ -965,6 +978,20 @@ Use this section to track progress across multiple sessions:
 - Updated App.tsx with HotUpdater.wrap()
 - iOS pods installed for Hot Updater native module
 - Phase 1.5 partially complete (awaiting Supabase project setup)
+
+#### Session 4 (2025-12-26)
+- Completed Supabase setup (project, storage bucket, edge function)
+- Configured RLS policies for storage and bundles table
+- Fixed HotUpdater.wrap() configuration (baseURL, updateStrategy, updateMode)
+- Successfully tested OTA update flow (v1 → v2)
+- Added comprehensive test suite:
+  - Deno tests for edge function semver filtering (10 test cases)
+  - Jest mock for @hot-updater/react-native
+  - Updated App test to use src/App.tsx with HotUpdater
+- Created GitHub Actions CI workflow (Jest + Deno tests)
+- Added npm scripts: test:deno, test:all
+- Created PR #2 with all Hot Updater changes
+- Phase 1.5 fully complete
 
 ---
 
