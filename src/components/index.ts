@@ -7,3 +7,6 @@ export type { GameRowProps } from './GameRow';
 
 export { GameList } from './GameList';
 export type { GameListProps } from './GameList';
+
+export { EditModal } from './EditModal';
+export type { EditModalProps } from './EditModal';
