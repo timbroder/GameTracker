@@ -3,3 +3,4 @@
  */
 
 export { default as TestScreen } from './TestScreen';
+export { HomeScreen } from './HomeScreen';
