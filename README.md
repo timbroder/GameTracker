@@ -42,10 +42,16 @@ cd ios && pod install && cd ..
 1. Go to https://rawg.io/apidocs
 2. Sign up for a free account
 3. Copy your API key
-4. Create a `.env` file in the project root:
+4. Create the secrets file:
 
 ```bash
-echo "RAWG_API_KEY=your_api_key_here" > .env
+cp src/config/secrets.example.ts src/config/secrets.ts
+```
+
+5. Edit `src/config/secrets.ts` and add your API key:
+
+```typescript
+export const RAWG_API_KEY = 'your_api_key_here';
 ```
 
 ## Running the App

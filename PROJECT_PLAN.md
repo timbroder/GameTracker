@@ -402,7 +402,7 @@ npm run test:all
 
 ---
 
-### Phase 2: Data Layer & Storage
+### Phase 2: Data Layer & Storage ✅ COMPLETE
 **Goal:** Implement data model, storage service, and RAWG API integration
 
 **Tasks:**
@@ -412,45 +412,62 @@ npm run test:all
    - Define `Game` interface
    - Define `Platform` type
    - Define `GameSearchResult`, `GameDetails` types
-2. [ ] Create `src/types/storage.ts`
+2. ✅ Create `src/types/storage.ts`
    - Storage key constants
    - Storage data structures
+   - User preferences types
 
-#### 2.2 Storage Service
-1. [ ] Create `src/services/storage.ts`
+#### 2.2 Storage Service ✅ COMPLETE
+1. ✅ Create `src/services/storage.ts`
    - `saveGames(games: Game[]): Promise<void>`
    - `loadGames(): Promise<Game[]>`
    - `savePreferences(prefs: UserPrefs): Promise<void>`
    - `loadPreferences(): Promise<UserPrefs>`
-   - Error handling and data migration support
+   - `clearAllData(): Promise<void>`
+   - Error handling with meaningful messages
 
-#### 2.3 RAWG API Service
-1. [ ] Create `src/services/rawgApi.ts`
+#### 2.3 RAWG API Service ✅ COMPLETE
+1. ✅ Create `src/services/rawgApi.ts`
    - Initialize axios instance with base URL
-   - API key management (from env or config)
+   - API key management via `src/config/secrets.ts`
    - `searchGames(query: string): Promise<GameSearchResult[]>`
    - `getGameDetails(id: number): Promise<GameDetails>`
    - `getPlatforms(): Promise<Platform[]>`
-   - Error handling and rate limiting
-2. [ ] Add API key configuration
-   - Create `.env` file (add to .gitignore)
-   - Document how to get RAWG API key in README
+   - `getGamePlatforms(gameId: number): Promise<Platform[]>`
+   - Error handling (401, 404, 429, network errors)
+2. ✅ Add API key configuration
+   - `src/config/secrets.ts` (gitignored)
+   - `src/config/secrets.example.ts` (template)
+   - README updated with setup instructions
 
-#### 2.4 Game Manager Service
-1. [ ] Create `src/services/gameManager.ts`
-   - `addGame(game: Omit<Game, 'id' | 'dateAdded'>): Promise<Game>`
-   - `updateGame(id: string, updates: Partial<Game>): Promise<void>`
+#### 2.4 Game Manager Service ✅ COMPLETE
+1. ✅ Create `src/services/gameManager.ts`
+   - `addGame(input: NewGameInput): Promise<Game>`
+   - `updateGame(id: string, updates: Partial<Game>): Promise<Game>`
    - `deleteGame(id: string): Promise<void>`
-   - `toggleCompleted(id: string): Promise<void>`
+   - `toggleCompleted(id: string): Promise<Game>`
    - `reorderGames(reorderedIds: string[]): Promise<void>`
-   - Auto-assignment of colors and sort orders
+   - `getGames(filter?: { completed?: boolean }): Promise<Game[]>`
+   - `gameExists(rawgId: number, platformId: number): Promise<boolean>`
+   - Auto-assignment of colors (cycles through 7 Clear colors)
+   - Auto-assignment of sort orders
 
-**Acceptance Criteria:**
+#### 2.5 Testing ✅ COMPLETE
+1. ✅ Unit tests for all services (51 Jest tests)
+   - `src/services/__tests__/storage.test.ts`
+   - `src/services/__tests__/rawgApi.test.ts`
+   - `src/services/__tests__/gameManager.test.ts`
+2. ✅ Jest mock for axios (`src/__mocks__/axios.ts`)
+3. ✅ Jest mock for secrets (`src/config/__mocks__/secrets.ts`)
+4. ✅ Temporary TestScreen for manual verification
+
+**Acceptance Criteria:** ✅ All met
 - Can save and load games from AsyncStorage
 - Can search games via RAWG API
 - Can fetch game details and platforms
 - All services have proper error handling
 - TypeScript types are complete
+- All 51 unit tests passing
 
 ---
 
@@ -948,9 +965,9 @@ module.exports = {
 
 ### Current Session Status
 - **Date**: 2025-12-26
-- **Phase**: Phase 1.5 Complete, Ready for Phase 2
-- **Last Completed**: Hot Updater OTA updates fully working with tests and CI
-- **Next Steps**: Begin Phase 2 - Data Layer & Storage
+- **Phase**: Phase 2 Complete, Ready for Phase 3
+- **Last Completed**: Data Layer & Storage with full test coverage (51 tests)
+- **Next Steps**: Begin Phase 3 - UI Components (Game Row)
 
 ### Session Notes
 Use this section to track progress across multiple sessions:
@@ -992,6 +1009,30 @@ Use this section to track progress across multiple sessions:
 - Added npm scripts: test:deno, test:all
 - Created PR #2 with all Hot Updater changes
 - Phase 1.5 fully complete
+
+#### Session 5 (2025-12-26)
+- Implemented Phase 2: Data Layer & Storage
+- Created type definitions:
+  - `src/types/storage.ts` - Storage keys, user preferences
+  - `src/types/index.ts` - Barrel export for all types
+- Created services:
+  - `src/services/storage.ts` - AsyncStorage wrapper
+  - `src/services/rawgApi.ts` - RAWG API client with error handling
+  - `src/services/gameManager.ts` - Game CRUD with auto color cycling
+  - `src/services/index.ts` - Barrel export
+- Created config:
+  - `src/config/index.ts` - App configuration
+  - `src/config/secrets.ts` - API key (gitignored)
+  - `src/config/secrets.example.ts` - Template for setup
+- Added comprehensive unit tests (51 tests):
+  - `src/services/__tests__/storage.test.ts`
+  - `src/services/__tests__/rawgApi.test.ts`
+  - `src/services/__tests__/gameManager.test.ts`
+- Created TestScreen for manual API verification
+- Fixed axios mock, tsconfig moduleResolution, App test async handling
+- Updated README with secrets.ts setup instructions
+- Created PR #3 - merged
+- Phase 2 fully complete
 
 ---
 
