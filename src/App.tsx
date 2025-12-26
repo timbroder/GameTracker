@@ -2,7 +2,6 @@
  * GameTracker - Clear-style game tracking app
  */
 
-import 'react-native-get-random-values'; // Must be first for uuid
 import React, { useEffect, useState } from 'react';
 import { StatusBar, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { HotUpdater } from '@hot-updater/react-native';
