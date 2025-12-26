@@ -3,15 +3,13 @@
  */
 
 import React, { useEffect } from 'react';
-import { StatusBar, useColorScheme } from 'react-native';
+import { StatusBar } from 'react-native';
 import { HotUpdater } from '@hot-updater/react-native';
-import TestScreen from './screens/TestScreen';
+import { HomeScreen } from './screens';
 import { getRawgApiKey } from './config';
 import { setApiKey } from './services/rawgApi';
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
   useEffect(() => {
     // Initialize RAWG API key from config
     const apiKey = getRawgApiKey();
@@ -22,11 +20,8 @@ function App(): React.JSX.Element {
 
   return (
     <>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={isDarkMode ? '#000' : '#fff'}
-      />
-      <TestScreen />
+      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <HomeScreen />
     </>
   );
 }
