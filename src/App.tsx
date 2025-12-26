@@ -11,6 +11,7 @@ import {
   View,
   useColorScheme,
 } from 'react-native';
+import { HotUpdater } from '@hot-updater/react-native';
 
 function App(): React.JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -51,4 +52,9 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+// Wrap with HotUpdater for OTA updates
+export default HotUpdater.wrap({
+  baseURL: 'https://juorsgyjsgablrgdqpyp.supabase.co/functions/v1/hot-updater',
+  updateStrategy: 'appVersion',
+  updateMode: 'auto',
+})(App);
