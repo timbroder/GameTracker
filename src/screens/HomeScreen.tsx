@@ -3,12 +3,14 @@
  */
 
 import React, { useCallback, useState } from 'react';
-import { SafeAreaView, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GameList, EditModal } from '../components';
 import { useGames } from '../hooks';
 import type { Game } from '../types';
 
 export function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const {
     games,
     sortedGames,
@@ -88,7 +90,7 @@ export function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <GameList
         sortedGames={sortedGames}
         loading={loading}
@@ -105,7 +107,7 @@ export function HomeScreen() {
         onDelete={handleDeleteGame}
         onToggleCompleted={handleToggleCompletedFromModal}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

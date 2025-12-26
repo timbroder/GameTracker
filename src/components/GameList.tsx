@@ -2,22 +2,28 @@
  * GameList - Main game list component with drag-and-drop support
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  FlatList,
 } from 'react-native';
-import DraggableFlatList, {
-  ScaleDecorator,
-  RenderItemParams,
-} from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { Game } from '../types';
-import { GameRow, GAME_ROW_HEIGHT } from './GameRow';
+import { GameRow } from './GameRow';
 import type { SortedGames } from '../utils/sorting';
+
+type ListItem =
+  | { type: 'game'; game: Game; section: 'unplayed' | 'completed' }
+  | { type: 'header'; title: string; count: number };
+
+type RenderItemParams<T> = {
+  item: T;
+  index: number;
+};
 
 export interface GameListProps {
   sortedGames: SortedGames;
@@ -93,6 +99,26 @@ export function GameList({
   const { unplayed, completed } = sortedGames;
   const [refreshing, setRefreshing] = React.useState(false);
 
+  // Combine all items into a single list for smooth animations
+  const listItems = useMemo((): ListItem[] => {
+    const items: ListItem[] = [];
+
+    // Add unplayed games
+    unplayed.forEach((game) => {
+      items.push({ type: 'game', game, section: 'unplayed' });
+    });
+
+    // Add completed section header and games
+    if (completed.length > 0) {
+      items.push({ type: 'header', title: 'Completed', count: completed.length });
+      completed.forEach((game) => {
+        items.push({ type: 'game', game, section: 'completed' });
+      });
+    }
+
+    return items;
+  }, [unplayed, completed]);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -102,36 +128,16 @@ export function GameList({
     }
   }, [onRefresh]);
 
-  const handleDragEnd = useCallback(
-    ({ data }: { data: Game[] }) => {
-      const reorderedIds = data.map((game) => game.id);
-      onReorder(reorderedIds);
-    },
-    [onReorder]
-  );
+  const renderItem = useCallback(
+    ({ item }: RenderItemParams<ListItem>) => {
+      if (item.type === 'header') {
+        return <SectionHeader title={item.title} count={item.count} />;
+      }
 
-  const renderUnplayedItem = useCallback(
-    ({ item, drag, isActive }: RenderItemParams<Game>) => {
-      return (
-        <ScaleDecorator>
-          <GameRow
-            game={item}
-            onSwipe={onSwipe}
-            onLongPress={onLongPress}
-            onPinch={onPinch}
-          />
-        </ScaleDecorator>
-      );
-    },
-    [onSwipe, onLongPress, onPinch]
-  );
-
-  const renderCompletedItem = useCallback(
-    (game: Game) => {
+      // Game item
       return (
         <GameRow
-          key={game.id}
-          game={game}
+          game={item.game}
           onSwipe={onSwipe}
           onLongPress={onLongPress}
           onPinch={onPinch}
@@ -141,16 +147,12 @@ export function GameList({
     [onSwipe, onLongPress, onPinch]
   );
 
-  const keyExtractor = useCallback((item: Game) => item.id, []);
-
-  const getItemLayout = useCallback(
-    (_: any, index: number) => ({
-      length: GAME_ROW_HEIGHT,
-      offset: GAME_ROW_HEIGHT * index,
-      index,
-    }),
-    []
-  );
+  const keyExtractor = useCallback((item: ListItem) => {
+    if (item.type === 'header') {
+      return `header-${item.title}`;
+    }
+    return item.game.id;
+  }, []);
 
   // Loading state
   if (loading && unplayed.length === 0 && completed.length === 0) {
@@ -171,43 +173,19 @@ export function GameList({
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <View style={styles.container}>
-        {/* Unplayed Games Section */}
-        {unplayed.length > 0 ? (
-          <DraggableFlatList
-            data={unplayed}
-            keyExtractor={keyExtractor}
-            renderItem={renderUnplayedItem}
-            onDragEnd={handleDragEnd}
-            getItemLayout={getItemLayout}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor="#4D96FF"
-              />
-            }
-            ListFooterComponent={
-              completed.length > 0 ? (
-                <View>
-                  <SectionHeader title="Completed" count={completed.length} />
-                  {completed.map(renderCompletedItem)}
-                </View>
-              ) : null
-            }
+      <FlatList
+        data={listItems}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#4D96FF"
           />
-        ) : (
-          <View style={styles.container}>
-            <EmptyState message="No games to play. All done!" />
-            {completed.length > 0 && (
-              <>
-                <SectionHeader title="Completed" count={completed.length} />
-                {completed.map(renderCompletedItem)}
-              </>
-            )}
-          </View>
-        )}
-      </View>
+        }
+      />
     </GestureHandlerRootView>
   );
 }
@@ -216,6 +194,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  listContent: {
+    flexGrow: 1,
   },
   loadingContainer: {
     flex: 1,

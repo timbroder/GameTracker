@@ -9,7 +9,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -36,14 +36,14 @@ export interface GameRowProps {
 }
 
 /**
- * Row height as specified in design
+ * Row height - sized to fit box art with padding
  */
-export const GAME_ROW_HEIGHT = 80;
+export const GAME_ROW_HEIGHT = 88;
 
 /**
- * Swipe threshold to trigger action
+ * Swipe threshold to trigger action (lowered for better responsiveness)
  */
-const SWIPE_THRESHOLD = 100;
+const SWIPE_THRESHOLD = 60;
 
 /**
  * Placeholder component for missing box art
@@ -169,8 +169,9 @@ function GameRowComponent({
 
   // Pan gesture for swipe
   const panGesture = Gesture.Pan()
-    .activeOffsetX(20) // Only activate after 20px horizontal movement
-    .failOffsetY([-20, 20]) // Fail if vertical movement exceeds 20px
+    .activeOffsetX(10) // Only activate after 10px horizontal movement
+    .failOffsetY([-30, 30]) // Fail if vertical movement exceeds 30px (more forgiving)
+    .maxPointers(1) // Single finger only
     .onUpdate((event) => {
       // Only allow right swipe
       if (event.translationX > 0) {
@@ -187,8 +188,8 @@ function GameRowComponent({
     })
     .onEnd((event) => {
       if (event.translationX > SWIPE_THRESHOLD) {
-        // Animate out and trigger callback
-        translateX.value = withTiming(0, { duration: 200 });
+        // Snap back and trigger callback - LayoutAnimation handles the move
+        translateX.value = withTiming(0, { duration: 150 });
         runOnJS(handleSwipe)();
       } else {
         // Spring back
@@ -211,10 +212,23 @@ function GameRowComponent({
     transform: [{ translateX: translateX.value }],
   }));
 
+  const swipeIndicatorStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(translateX.value / SWIPE_THRESHOLD, 1),
+  }));
+
   return (
     <GestureDetector gesture={composedGesture}>
-      <Animated.View style={[animatedStyle, isDragging && styles.dragging]}>
-        <LinearGradient {...gradientProps} style={styles.container}>
+      <Animated.View style={styles.rowWrapper}>
+        {/* Swipe indicator behind the row */}
+        <Animated.View style={[styles.swipeIndicator, swipeIndicatorStyle]}>
+          <Text style={styles.swipeIndicatorText}>
+            {game.isCompleted ? '↩' : '✓'}
+          </Text>
+        </Animated.View>
+        <Animated.View style={[styles.rowContent, animatedStyle, isDragging && styles.dragging]}>
+          {/* Gradient background layer */}
+          <LinearGradient {...gradientProps} style={styles.gradientBackground} />
+          {/* Content layer */}
           <View style={styles.content}>
             {/* Box Art */}
             <BoxArt url={game.boxArtUrl} />
@@ -248,26 +262,49 @@ function GameRowComponent({
               logoUrl={game.platformLogoUrl}
             />
           </View>
-        </LinearGradient>
+        </Animated.View>
       </Animated.View>
     </GestureDetector>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  rowWrapper: {
     height: GAME_ROW_HEIGHT,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    overflow: 'hidden',
+  },
+  rowContent: {
+    flex: 1,
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 0,
+  },
+  swipeIndicatorText: {
+    fontSize: 28,
+    color: '#FFF',
+  },
+  gradientBackground: {
+    ...StyleSheet.absoluteFillObject,
   },
   content: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 16,
   },
   boxArt: {
-    width: 60,
-    height: 60,
+    width: 64,
+    height: 64,
     borderRadius: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
