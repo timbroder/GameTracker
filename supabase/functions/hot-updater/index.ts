@@ -4,41 +4,13 @@ import {
   createClient,
   type SupabaseClient,
 } from "jsr:@supabase/supabase-js@2.49.4";
-import semver from "npm:semver@7.7.1";
 import type { GetBundlesArgs, UpdateInfo } from "@hot-updater/core";
+import { filterCompatibleAppVersions } from "./semver-utils.ts";
 
 // Set the function name for routing
 (globalThis as any).HotUpdater = { FUNCTION_NAME: "hot-updater" };
 
 const NIL_UUID = "00000000-0000-0000-0000-000000000000";
-
-const semverSatisfies = (targetAppVersion: string, currentVersion: string) => {
-  const currentCoerce = semver.coerce(currentVersion);
-  if (!currentCoerce) {
-    return false;
-  }
-
-  return semver.satisfies(currentCoerce.version, targetAppVersion);
-};
-
-/**
- * Filters target app versions that are compatible with the current app version.
- * Returns only versions that are compatible with the current version according to semver rules.
- *
- * @param targetAppVersionList - List of target app versions to filter
- * @param currentVersion - Current app version
- * @returns Array of target app versions compatible with the current version
- */
-export const filterCompatibleAppVersions = (
-  targetAppVersionList: string[],
-  currentVersion: string,
-) => {
-  const compatibleAppVersionList = targetAppVersionList.filter((version) =>
-    semverSatisfies(version, currentVersion),
-  );
-
-  return compatibleAppVersionList.sort((a, b) => b.localeCompare(a));
-};
 
 const appVersionStrategy = async (
   supabase: SupabaseClient<any, "public", any>,
@@ -64,7 +36,7 @@ const appVersionStrategy = async (
     },
   );
   const compatibleAppVersionList = filterCompatibleAppVersions(
-    appVersionList?.map((group) => group.target_app_version) ?? [],
+    appVersionList?.map((group: { target_app_version: string }) => group.target_app_version) ?? [],
     appVersion,
   );
 

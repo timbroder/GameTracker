@@ -11,11 +11,13 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/__mocks__/fileMock.js',
+    '^@hot-updater/react-native$': '<rootDir>/__mocks__/@hot-updater/react-native.js',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
     '/ios/',
     '/android/',
+    '/supabase/', // Deno tests, run separately
     'testHelpers.ts$', // Don't treat helpers as test files
   ],
   collectCoverageFrom: [

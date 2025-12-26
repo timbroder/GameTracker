@@ -1,4 +1,7 @@
 {
+  "compilerOptions": {
+    "jsx": "react"
+  },
   "imports": {
     "@hot-updater/core": "npm:@hot-updater/core@0.25.3"
   }
