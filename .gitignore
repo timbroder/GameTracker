@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.hotupdater
+src/config/secrets.ts
 
 # OSX
 #
