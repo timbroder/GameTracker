@@ -2,13 +2,15 @@
  * HomeScreen - Main screen showing the game list
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { SafeAreaView, StyleSheet, Alert } from 'react-native';
-import { GameList } from '../components';
+import { GameList, EditModal } from '../components';
 import { useGames } from '../hooks';
+import type { Game } from '../types';
 
 export function HomeScreen() {
   const {
+    games,
     sortedGames,
     loading,
     error,
@@ -17,6 +19,9 @@ export function HomeScreen() {
     reorderGames,
     deleteGame,
   } = useGames();
+
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     await loadGames();
@@ -44,34 +49,42 @@ export function HomeScreen() {
     [toggleCompleted]
   );
 
-  const handleLongPress = useCallback((gameId: string) => {
-    // TODO: Open edit modal in Phase 5
-    console.log('Long press on game:', gameId);
+  const handleLongPress = useCallback(
+    (gameId: string) => {
+      const game = games.find((g) => g.id === gameId);
+      if (game) {
+        setEditingGame(game);
+        setIsEditModalVisible(true);
+      }
+    },
+    [games]
+  );
+
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalVisible(false);
+    setEditingGame(null);
   }, []);
 
-  const handlePinch = useCallback(
-    (gameId: string) => {
-      // TODO: Better delete confirmation in Phase 5
-      Alert.alert(
-        'Delete Game',
-        'Are you sure you want to delete this game?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                await deleteGame(gameId);
-              } catch (err) {
-                Alert.alert('Error', 'Failed to delete game');
-              }
-            },
-          },
-        ]
-      );
+  const handleDeleteGame = useCallback(
+    async (gameId: string) => {
+      try {
+        await deleteGame(gameId);
+      } catch (err) {
+        Alert.alert('Error', 'Failed to delete game');
+      }
     },
     [deleteGame]
+  );
+
+  const handleToggleCompletedFromModal = useCallback(
+    async (gameId: string) => {
+      try {
+        await toggleCompleted(gameId);
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update game');
+      }
+    },
+    [toggleCompleted]
   );
 
   return (
@@ -84,7 +97,13 @@ export function HomeScreen() {
         onReorder={handleReorder}
         onSwipe={handleSwipe}
         onLongPress={handleLongPress}
-        onPinch={handlePinch}
+      />
+      <EditModal
+        game={editingGame}
+        visible={isEditModalVisible}
+        onClose={handleCloseEditModal}
+        onDelete={handleDeleteGame}
+        onToggleCompleted={handleToggleCompletedFromModal}
       />
     </SafeAreaView>
   );

@@ -1,31 +1,49 @@
 /**
- * GameRow - Clear-style game row component
+ * GameRow - Clear-style game row component with gestures
  *
  * Displays a single game with gradient background, box art, and platform info.
- * Supports completed state with grey coloring.
+ * Supports:
+ * - Swipe right to toggle completed status
+ * - Long press to edit
+ * - Completed state with grey coloring
  */
 
-import React, { memo } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { Game } from '../types';
 import {
   getGameColor,
   getGradientProps,
   COMPLETED_OPACITY,
 } from '../utils/colors';
+import { useHaptics } from '../hooks/useHaptics';
 
 export interface GameRowProps {
   game: Game;
   onSwipe?: (gameId: string) => void;
   onLongPress?: (gameId: string) => void;
   onPinch?: (gameId: string) => void;
+  isDragging?: boolean;
 }
 
 /**
  * Row height as specified in design
  */
 export const GAME_ROW_HEIGHT = 80;
+
+/**
+ * Swipe threshold to trigger action
+ */
+const SWIPE_THRESHOLD = 100;
 
 /**
  * Placeholder component for missing box art
@@ -60,7 +78,6 @@ function BoxArt({ url }: { url: string }) {
 
 /**
  * Platform badge showing platform name
- * Falls back to text if no logo available
  */
 function PlatformBadge({
   name,
@@ -71,7 +88,6 @@ function PlatformBadge({
 }) {
   const [hasError, setHasError] = React.useState(false);
 
-  // If we have a logo URL and it hasn't errored, show the image
   if (logoUrl && !hasError) {
     return (
       <Image
@@ -83,7 +99,6 @@ function PlatformBadge({
     );
   }
 
-  // Fallback to abbreviated text
   const abbreviation = getPlatformAbbreviation(name);
   return (
     <View style={styles.platformBadge}>
@@ -122,52 +137,120 @@ function getPlatformAbbreviation(name: string): string {
 }
 
 /**
- * GameRow component
+ * GameRow component with gestures
  */
-function GameRowComponent({ game }: GameRowProps) {
+function GameRowComponent({
+  game,
+  onSwipe,
+  onLongPress,
+  isDragging = false,
+}: GameRowProps) {
+  const haptics = useHaptics();
+  const translateX = useSharedValue(0);
+  const isSwipeTriggered = useSharedValue(false);
+
   const color = getGameColor(game.colorIndex, game.isCompleted);
   const opacity = game.isCompleted ? COMPLETED_OPACITY : 1;
   const gradientProps = getGradientProps(color, opacity);
 
+  const handleSwipe = useCallback(() => {
+    if (onSwipe) {
+      haptics.light();
+      onSwipe(game.id);
+    }
+  }, [onSwipe, game.id, haptics]);
+
+  const handleLongPress = useCallback(() => {
+    if (onLongPress) {
+      haptics.medium();
+      onLongPress(game.id);
+    }
+  }, [onLongPress, game.id, haptics]);
+
+  // Pan gesture for swipe
+  const panGesture = Gesture.Pan()
+    .activeOffsetX(20) // Only activate after 20px horizontal movement
+    .failOffsetY([-20, 20]) // Fail if vertical movement exceeds 20px
+    .onUpdate((event) => {
+      // Only allow right swipe
+      if (event.translationX > 0) {
+        translateX.value = event.translationX;
+
+        // Trigger haptic when crossing threshold
+        if (event.translationX > SWIPE_THRESHOLD && !isSwipeTriggered.value) {
+          isSwipeTriggered.value = true;
+          runOnJS(haptics.selection)();
+        } else if (event.translationX < SWIPE_THRESHOLD && isSwipeTriggered.value) {
+          isSwipeTriggered.value = false;
+        }
+      }
+    })
+    .onEnd((event) => {
+      if (event.translationX > SWIPE_THRESHOLD) {
+        // Animate out and trigger callback
+        translateX.value = withTiming(0, { duration: 200 });
+        runOnJS(handleSwipe)();
+      } else {
+        // Spring back
+        translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+      }
+      isSwipeTriggered.value = false;
+    });
+
+  // Long press gesture
+  const longPressGesture = Gesture.LongPress()
+    .minDuration(500)
+    .onStart(() => {
+      runOnJS(handleLongPress)();
+    });
+
+  // Combine gestures - pan takes priority
+  const composedGesture = Gesture.Race(panGesture, longPressGesture);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   return (
-    <LinearGradient
-      {...gradientProps}
-      style={styles.container}
-    >
-      <View style={styles.content}>
-        {/* Box Art */}
-        <BoxArt url={game.boxArtUrl} />
+    <GestureDetector gesture={composedGesture}>
+      <Animated.View style={[animatedStyle, isDragging && styles.dragging]}>
+        <LinearGradient {...gradientProps} style={styles.container}>
+          <View style={styles.content}>
+            {/* Box Art */}
+            <BoxArt url={game.boxArtUrl} />
 
-        {/* Game Info */}
-        <View style={styles.info}>
-          <Text
-            style={[
-              styles.gameName,
-              game.isCompleted && styles.completedText,
-            ]}
-            numberOfLines={1}
-            ellipsizeMode="tail"
-          >
-            {game.name}
-          </Text>
-          <Text
-            style={[
-              styles.platformName,
-              game.isCompleted && styles.completedText,
-            ]}
-            numberOfLines={1}
-          >
-            {game.platform}
-          </Text>
-        </View>
+            {/* Game Info */}
+            <View style={styles.info}>
+              <Text
+                style={[
+                  styles.gameName,
+                  game.isCompleted && styles.completedText,
+                ]}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {game.name}
+              </Text>
+              <Text
+                style={[
+                  styles.platformName,
+                  game.isCompleted && styles.completedText,
+                ]}
+                numberOfLines={1}
+              >
+                {game.platform}
+              </Text>
+            </View>
 
-        {/* Platform Badge */}
-        <PlatformBadge
-          name={game.platform}
-          logoUrl={game.platformLogoUrl}
-        />
-      </View>
-    </LinearGradient>
+            {/* Platform Badge */}
+            <PlatformBadge
+              name={game.platform}
+              logoUrl={game.platformLogoUrl}
+            />
+          </View>
+        </LinearGradient>
+      </Animated.View>
+    </GestureDetector>
   );
 }
 
@@ -228,6 +311,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  dragging: {
+    opacity: 0.9,
+    transform: [{ scale: 1.02 }],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
   },
 });
 
