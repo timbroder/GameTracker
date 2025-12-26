@@ -345,6 +345,50 @@ GameTracker/
 
 ---
 
+### Phase 1.5: Hot Updater OTA Updates
+**Goal:** Enable over-the-air JavaScript updates without rebuilding the native app
+
+**Why:** App is sideloaded via AltServer. Hot Updater allows pushing JS updates without rebuilding and re-sideloading.
+
+**Status:** Partially Complete
+
+**Tasks:**
+1. ✅ Install `@hot-updater/react-native` package
+2. ✅ Install `hot-updater` CLI and `@hot-updater/supabase` plugin
+3. ✅ Configure `hot-updater.config.ts` for Supabase
+4. ✅ Update iOS native code (pod install)
+5. ✅ Wrap root App component with `HotUpdater.wrap()`
+6. [ ] Create Supabase project (free tier)
+7. [ ] Create storage bucket for bundles
+8. [ ] Run database migrations for bundles table
+9. [ ] Add Supabase credentials to `.env.hotupdater`
+10. [ ] Deploy Supabase Edge Function for update endpoint
+11. [ ] Test OTA update flow
+12. [ ] Document Hot Updater workflow in README
+
+**Supabase Setup Required:**
+1. Create project at https://supabase.com
+2. Create storage bucket named `hot-updater`
+3. Copy project URL and anon key to `.env.hotupdater`
+4. Run: `npx hot-updater supabase init` (creates tables)
+5. Deploy edge function: `npx hot-updater supabase deploy`
+
+**Usage after setup:**
+```bash
+# Deploy an update
+npx hot-updater deploy -p ios -m "Bug fix"
+
+# Check deployment status
+npx hot-updater console
+```
+
+**Acceptance Criteria:**
+- App can receive OTA updates without AltServer rebuild
+- Updates apply on next app launch
+- Release workflow is documented
+
+---
+
 ### Phase 2: Data Layer & Storage
 **Goal:** Implement data model, storage service, and RAWG API integration
 
@@ -890,10 +934,10 @@ module.exports = {
 ## Session Tracking
 
 ### Current Session Status
-- **Date**: 2025-12-24
-- **Phase**: Phase 2 - Data Layer & Storage
-- **Last Completed**: Phase 1 complete, type definitions done
-- **Next Steps**: Implement storage service and RAWG API integration
+- **Date**: 2025-12-25
+- **Phase**: Phase 1.5 - Hot Updater OTA Updates
+- **Last Completed**: Hot Updater client installed and configured
+- **Next Steps**: Create Supabase project, complete OTA setup, then continue to Phase 2
 
 ### Session Notes
 Use this section to track progress across multiple sessions:
@@ -912,6 +956,15 @@ Use this section to track progress across multiple sessions:
 - Successfully built and ran app on iPhone 17 Pro simulator
 - Set up git repo with remote at github.com/timbroder/GameTracker
 - Phase 1 fully complete
+
+#### Session 3 (2025-12-25)
+- Researched OTA update solutions (CodePush retired March 2025)
+- Chose Hot Updater with Supabase free tier as replacement
+- Installed hot-updater and @hot-updater/supabase packages
+- Created hot-updater.config.ts for Supabase integration
+- Updated App.tsx with HotUpdater.wrap()
+- iOS pods installed for Hot Updater native module
+- Phase 1.5 partially complete (awaiting Supabase project setup)
 
 ---
 
