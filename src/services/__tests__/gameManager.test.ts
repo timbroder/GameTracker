@@ -69,13 +69,17 @@ describe('Game Manager Service', () => {
         ...newGameInput,
         id: 'mock-uuid-123',
         dateAdded: '2025-01-15T12:00:00.000Z',
-        sortOrder: 1, // After existing game
+        sortOrder: 0, // New games go to top
         colorIndex: 1, // Next color after 0
         isCompleted: false,
       });
 
+      // Existing game should have its sortOrder shifted up
       expect(mockStorage.saveGames).toHaveBeenCalledWith(
-        expect.arrayContaining([mockGame, expect.objectContaining(newGameInput)]),
+        expect.arrayContaining([
+          expect.objectContaining({ ...mockGame, sortOrder: 1 }), // Shifted
+          expect.objectContaining(newGameInput),
+        ]),
       );
     });
 

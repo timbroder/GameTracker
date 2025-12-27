@@ -40,6 +40,18 @@ function shiftSortOrders(games: Game[]): void {
 }
 
 /**
+ * Get the next sort order (at the end of unplayed games)
+ * Used when marking a completed game as unplayed
+ */
+function getNextSortOrder(games: Game[]): number {
+  const unplayedGames = games.filter((g) => !g.isCompleted);
+  if (unplayedGames.length === 0) {
+    return 0;
+  }
+  return Math.max(...unplayedGames.map((g) => g.sortOrder)) + 1;
+}
+
+/**
  * Add a new game to the list (at the top)
  */
 export async function addGame(input: NewGameInput): Promise<Game> {
