@@ -10,11 +10,11 @@ import {
   Modal,
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import type { Game } from '../types';
 import { getGameColor, getGradientProps } from '../utils/colors';
 import LinearGradient from 'react-native-linear-gradient';
@@ -80,10 +80,14 @@ export function EditModal({
           </TouchableOpacity>
 
           {game.boxArtUrl ? (
-            <Image
-              source={{ uri: game.boxArtUrl }}
+            <FastImage
+              source={{
+                uri: game.boxArtUrl,
+                priority: FastImage.priority.high,
+                cache: FastImage.cacheControl.immutable,
+              }}
               style={styles.boxArt}
-              resizeMode="cover"
+              resizeMode={FastImage.resizeMode.cover}
             />
           ) : (
             <View style={[styles.boxArt, styles.boxArtPlaceholder]}>

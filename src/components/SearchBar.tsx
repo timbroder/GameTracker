@@ -2,7 +2,7 @@
  * SearchBar - Persistent search bar at the bottom of the screen
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import {
   View,
   TextInput,
@@ -37,10 +37,10 @@ export function SearchBar({
     }
   }, [isActive]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     Keyboard.dismiss();
     onCancel();
-  };
+  }, [onCancel]);
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
