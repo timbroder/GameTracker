@@ -5,14 +5,13 @@
  * Completed games are shown in a separate non-draggable section.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   Pressable,
-  ScrollView,
 } from 'react-native';
 import DraggableFlatList, {
   RenderItemParams,
@@ -117,6 +116,24 @@ export function GameList({
 
   const keyExtractor = useCallback((item: Game) => item.id, []);
 
+  // Footer component with completed games
+  const ListFooter = useMemo(() => {
+    if (completed.length === 0) return null;
+    return (
+      <View style={styles.footerContainer}>
+        <SectionHeader title="Completed" count={completed.length} />
+        {completed.map((game) => (
+          <GameRow
+            key={game.id}
+            game={game}
+            onSwipe={onSwipe}
+            onInfo={onInfo}
+          />
+        ))}
+      </View>
+    );
+  }, [completed, onSwipe, onInfo]);
+
   // Loading state
   if (loading && unplayed.length === 0 && completed.length === 0) {
     return <LoadingState />;
@@ -136,33 +153,19 @@ export function GameList({
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Unplayed games - draggable */}
-        {unplayed.length > 0 && (
-          <DraggableFlatList
-            data={unplayed}
-            keyExtractor={keyExtractor}
-            renderItem={renderUnplayedItem}
-            onDragEnd={handleDragEnd}
-            scrollEnabled={false}
-          />
-        )}
-
-        {/* Completed games - not draggable */}
-        {completed.length > 0 && (
-          <View>
-            <SectionHeader title="Completed" count={completed.length} />
-            {completed.map((game) => (
-              <GameRow
-                key={game.id}
-                game={game}
-                onSwipe={onSwipe}
-                onInfo={onInfo}
-              />
-            ))}
-          </View>
-        )}
-      </ScrollView>
+      <DraggableFlatList
+        data={unplayed}
+        keyExtractor={keyExtractor}
+        renderItem={renderUnplayedItem}
+        onDragEnd={handleDragEnd}
+        ListFooterComponent={ListFooter}
+        ListEmptyComponent={
+          completed.length > 0 ? null : (
+            <EmptyState message="No games to play!" />
+          )
+        }
+        contentContainerStyle={styles.listContent}
+      />
     </GestureHandlerRootView>
   );
 }
@@ -172,11 +175,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  scrollView: {
-    flex: 1,
+  listContent: {
+    paddingBottom: 100, // Space for search bar
   },
-  scrollContent: {
-    flexGrow: 1,
+  footerContainer: {
+    marginTop: 8,
   },
   loadingContainer: {
     flex: 1,
