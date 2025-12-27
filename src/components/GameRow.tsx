@@ -18,6 +18,9 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  FadeIn,
+  FadeOut,
+  Layout,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { Game } from '../types';
@@ -164,7 +167,12 @@ function GameRowComponent({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View style={styles.rowWrapper}>
+      <Animated.View
+        style={styles.rowWrapper}
+        entering={FadeIn.duration(300)}
+        exiting={FadeOut.duration(200)}
+        layout={Layout.springify().damping(15).stiffness(100)}
+      >
         {/* Swipe indicator behind the row */}
         <Animated.View style={[styles.swipeIndicator, swipeIndicatorStyle]}>
           <Text style={styles.swipeIndicatorText}>

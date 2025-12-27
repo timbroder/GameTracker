@@ -18,9 +18,31 @@ import DraggableFlatList, {
 } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { Game } from '../types';
-import { GameRow } from './GameRow';
+import { GameRow, GAME_ROW_HEIGHT } from './GameRow';
 import { SkeletonLoader } from './SkeletonRow';
 import type { SortedGames } from '../utils/sorting';
+
+/**
+ * FlatList performance configuration
+ */
+const LIST_PERFORMANCE_CONFIG = {
+  // Pre-calculate item layout for faster scrolling
+  getItemLayout: (_data: ArrayLike<Game> | null | undefined, index: number) => ({
+    length: GAME_ROW_HEIGHT,
+    offset: GAME_ROW_HEIGHT * index,
+    index,
+  }),
+  // Remove offscreen views to save memory
+  removeClippedSubviews: true,
+  // Render fewer items per batch for smoother scrolling
+  maxToRenderPerBatch: 10,
+  // Reduce initial render batch
+  initialNumToRender: 10,
+  // Window size (number of items to keep in memory)
+  windowSize: 11,
+  // Update cell batch size
+  updateCellsBatchingPeriod: 50,
+};
 
 const SKELETON_COUNT = 6;
 
@@ -173,6 +195,8 @@ export function GameList({
           )
         }
         contentContainerStyle={styles.listContent}
+        // Performance optimizations
+        {...LIST_PERFORMANCE_CONFIG}
       />
     </GestureHandlerRootView>
   );
