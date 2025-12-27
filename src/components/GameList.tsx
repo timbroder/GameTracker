@@ -10,16 +10,41 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   Pressable,
+  TouchableOpacity,
 } from 'react-native';
 import DraggableFlatList, {
   RenderItemParams,
 } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { Game } from '../types';
-import { GameRow } from './GameRow';
+import { GameRow, GAME_ROW_HEIGHT } from './GameRow';
+import { SkeletonLoader } from './SkeletonRow';
 import type { SortedGames } from '../utils/sorting';
+
+/**
+ * FlatList performance configuration
+ */
+const LIST_PERFORMANCE_CONFIG = {
+  // Pre-calculate item layout for faster scrolling
+  getItemLayout: (_data: ArrayLike<Game> | null | undefined, index: number) => ({
+    length: GAME_ROW_HEIGHT,
+    offset: GAME_ROW_HEIGHT * index,
+    index,
+  }),
+  // Remove offscreen views to save memory
+  removeClippedSubviews: true,
+  // Render fewer items per batch for smoother scrolling
+  maxToRenderPerBatch: 10,
+  // Reduce initial render batch
+  initialNumToRender: 10,
+  // Window size (number of items to keep in memory)
+  windowSize: 11,
+  // Update cell batch size
+  updateCellsBatchingPeriod: 50,
+};
+
+const SKELETON_COUNT = 6;
 
 export interface GameListProps {
   sortedGames: SortedGames;
@@ -28,6 +53,7 @@ export interface GameListProps {
   onReorder: (reorderedIds: string[]) => Promise<void>;
   onSwipe: (gameId: string) => Promise<void>;
   onInfo?: (gameId: string) => void;
+  onRetry?: () => void;
 }
 
 /**
@@ -55,24 +81,23 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
 }
 
 /**
- * Loading state component
+ * Error state component with retry button
  */
-function LoadingState() {
-  return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator size="large" color="#4D96FF" />
-      <Text style={styles.loadingText}>Loading games...</Text>
-    </View>
-  );
-}
-
-/**
- * Error state component
- */
-function ErrorState({ message }: { message: string }) {
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
   return (
     <View style={styles.errorContainer}>
       <Text style={styles.errorText}>{message}</Text>
+      {onRetry && (
+        <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+          <Text style={styles.retryButtonText}>Tap to Retry</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -87,6 +112,7 @@ export function GameList({
   onReorder,
   onSwipe,
   onInfo,
+  onRetry,
 }: GameListProps) {
   const { unplayed, completed } = sortedGames;
 
@@ -134,14 +160,18 @@ export function GameList({
     );
   }, [completed, onSwipe, onInfo]);
 
-  // Loading state
+  // Loading state - show skeleton while loading initial data
   if (loading && unplayed.length === 0 && completed.length === 0) {
-    return <LoadingState />;
+    return (
+      <View style={styles.container}>
+        <SkeletonLoader count={SKELETON_COUNT} />
+      </View>
+    );
   }
 
   // Error state
   if (error) {
-    return <ErrorState message={error} />;
+    return <ErrorState message={error} onRetry={onRetry} />;
   }
 
   // Empty state
@@ -165,6 +195,8 @@ export function GameList({
           )
         }
         contentContainerStyle={styles.listContent}
+        // Performance optimizations
+        {...LIST_PERFORMANCE_CONFIG}
       />
     </GestureHandlerRootView>
   );
@@ -181,17 +213,6 @@ const styles = StyleSheet.create({
   footerContainer: {
     marginTop: 8,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: '#888',
-    fontSize: 14,
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -203,6 +224,18 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
     fontSize: 14,
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: '#333',
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   emptyState: {
     padding: 40,

@@ -9,7 +9,8 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -17,6 +18,9 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
+  FadeIn,
+  FadeOut,
+  Layout,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { Game } from '../types';
@@ -56,7 +60,7 @@ function BoxArtPlaceholder() {
 }
 
 /**
- * Box art image with loading state and error fallback
+ * Box art image with caching and error fallback
  */
 function BoxArt({ url }: { url: string }) {
   const [hasError, setHasError] = React.useState(false);
@@ -66,10 +70,14 @@ function BoxArt({ url }: { url: string }) {
   }
 
   return (
-    <Image
-      source={{ uri: url }}
+    <FastImage
+      source={{
+        uri: url,
+        priority: FastImage.priority.normal,
+        cache: FastImage.cacheControl.immutable,
+      }}
       style={styles.boxArt}
-      resizeMode="cover"
+      resizeMode={FastImage.resizeMode.cover}
       onError={() => setHasError(true)}
     />
   );
@@ -159,7 +167,12 @@ function GameRowComponent({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View style={styles.rowWrapper}>
+      <Animated.View
+        style={styles.rowWrapper}
+        entering={FadeIn.duration(300)}
+        exiting={FadeOut.duration(200)}
+        layout={Layout.springify().damping(15).stiffness(100)}
+      >
         {/* Swipe indicator behind the row */}
         <Animated.View style={[styles.swipeIndicator, swipeIndicatorStyle]}>
           <Text style={styles.swipeIndicatorText}>
