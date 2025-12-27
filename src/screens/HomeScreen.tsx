@@ -1,14 +1,18 @@
 /**
- * HomeScreen - Main screen showing the game list
+ * HomeScreen - Main screen showing the game list with search
  */
 
-import React, { useCallback, useState } from 'react';
-import { SafeAreaView, StyleSheet, Alert } from 'react-native';
-import { GameList, EditModal } from '../components';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, Alert, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { GameList, EditModal, SearchBar, SearchResults } from '../components';
 import { useGames } from '../hooks';
-import type { Game } from '../types';
+import { searchGames } from '../services/rawgApi';
+import { addGame as addGameService, gameExists } from '../services/gameManager';
+import type { Game, GameSearchResult, Platform } from '../types';
 
 export function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const {
     games,
     sortedGames,
@@ -20,12 +24,99 @@ export function HomeScreen() {
     deleteGame,
   } = useGames();
 
+  // Edit modal state
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  const handleRefresh = useCallback(async () => {
-    await loadGames();
-  }, [loadGames]);
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<GameSearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+
+  // Debounce timer
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Search when query changes (debounced)
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setSearchError(null);
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      setSearchError(null);
+      try {
+        const results = await searchGames(searchQuery, 20);
+        setSearchResults(results);
+      } catch (err) {
+        setSearchError(err instanceof Error ? err.message : 'Search failed');
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  // Handle adding a game from search results
+  const handleSelectGame = useCallback(
+    async (game: GameSearchResult, platform: Platform) => {
+      try {
+        // Check if game already exists
+        const exists = await gameExists(game.id, platform.id);
+        if (exists) {
+          Alert.alert('Already Added', `${game.name} for ${platform.name} is already in your list.`);
+          return;
+        }
+
+        // Add the game
+        await addGameService({
+          rawgId: game.id,
+          name: game.name,
+          platform: platform.name,
+          platformId: platform.id,
+          boxArtUrl: game.background_image || '',
+        });
+
+        // Refresh the game list
+        await loadGames();
+
+        // Close search
+        setSearchQuery('');
+        setSearchResults([]);
+        setIsSearchActive(false);
+        Keyboard.dismiss();
+      } catch (err) {
+        Alert.alert('Error', 'Failed to add game. Please try again.');
+      }
+    },
+    [loadGames]
+  );
+
+  const handleSearchFocus = useCallback(() => {
+    setIsSearchActive(true);
+  }, []);
+
+  const handleSearchCancel = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchError(null);
+    setIsSearchActive(false);
+    Keyboard.dismiss();
+  }, []);
 
   const handleReorder = useCallback(
     async (reorderedIds: string[]) => {
@@ -49,7 +140,7 @@ export function HomeScreen() {
     [toggleCompleted]
   );
 
-  const handleLongPress = useCallback(
+  const handleInfo = useCallback(
     (gameId: string) => {
       const game = games.find((g) => g.id === gameId);
       if (game) {
@@ -88,16 +179,37 @@ export function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Game list */}
       <GameList
         sortedGames={sortedGames}
         loading={loading}
         error={error}
-        onRefresh={handleRefresh}
         onReorder={handleReorder}
         onSwipe={handleSwipe}
-        onLongPress={handleLongPress}
+        onInfo={handleInfo}
       />
+
+      {/* Search results overlay */}
+      <SearchResults
+        visible={isSearchActive}
+        results={searchResults}
+        loading={searchLoading}
+        error={searchError}
+        onSelectGame={handleSelectGame}
+        onClose={handleSearchCancel}
+      />
+
+      {/* Persistent search bar */}
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        onFocus={handleSearchFocus}
+        onCancel={handleSearchCancel}
+        isActive={isSearchActive}
+      />
+
+      {/* Edit modal */}
       <EditModal
         game={editingGame}
         visible={isEditModalVisible}
@@ -105,7 +217,7 @@ export function HomeScreen() {
         onDelete={handleDeleteGame}
         onToggleCompleted={handleToggleCompletedFromModal}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

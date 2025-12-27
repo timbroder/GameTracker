@@ -29,7 +29,19 @@ function getNextColorIndex(games: Game[]): number {
 }
 
 /**
- * Get the next sort order for a new unplayed game
+ * Shift all unplayed games' sort order up by 1 to make room at the top
+ */
+function shiftSortOrders(games: Game[]): void {
+  games.forEach((game) => {
+    if (!game.isCompleted) {
+      game.sortOrder += 1;
+    }
+  });
+}
+
+/**
+ * Get the next sort order (at the end of unplayed games)
+ * Used when marking a completed game as unplayed
  */
 function getNextSortOrder(games: Game[]): number {
   const unplayedGames = games.filter((g) => !g.isCompleted);
@@ -40,16 +52,19 @@ function getNextSortOrder(games: Game[]): number {
 }
 
 /**
- * Add a new game to the list
+ * Add a new game to the list (at the top)
  */
 export async function addGame(input: NewGameInput): Promise<Game> {
   const games = await loadGames();
+
+  // Shift existing games down to make room at the top
+  shiftSortOrders(games);
 
   const newGame: Game = {
     ...input,
     id: uuidv4(),
     dateAdded: new Date().toISOString(),
-    sortOrder: getNextSortOrder(games),
+    sortOrder: 0, // New games go to the top
     colorIndex: getNextColorIndex(games),
     isCompleted: false,
   };
