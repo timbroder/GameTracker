@@ -183,17 +183,17 @@ class RAWGApiService {
 ┌─────────────────────────────────────┐
 │  ┌────┐                              │
 │  │    │  Game Title                  │
-│  │Box │  Platform Name          [🎮] │
+│  │Box │  Platform Name           (i) │
 │  │Art │                              │
 │  └────┘                              │
 └─────────────────────────────────────┘
 ```
 
 **Dimensions:**
-- Row height: 80px
-- Box art: 60x60px (rounded corners: 8px)
-- Padding: 12px vertical, 16px horizontal
-- Platform logo: 24x24px
+- Row height: 88px
+- Box art: 64x64px (rounded corners: 8px)
+- Padding: 12px vertical, 12px left, 16px right
+- Info button: 28x28px circular
 
 **Gradient:**
 - Linear gradient from `primary` to `secondary` (left to right, 15° angle)
@@ -202,65 +202,39 @@ class RAWGApiService {
 ### Gestures & Interactions
 
 #### 1. Swipe to Complete/Uncomplete
-- **Swipe right** on unplayed game → Mark as completed
-  - Animation: Row slides right, transforms to grey, moves to bottom
-  - Haptic: light impact
-  - Auto-sets `completedDate` to today
+- **Swipe right** on any game → Toggle completed status
+  - Visual: Swipe indicator shows ✓ (marking complete) or ↩ (marking unplayed)
+  - Haptic: selection feedback when crossing threshold
+  - Auto-sets/clears `completedDate`
 
-- **Swipe right** on completed game → Mark as unplayed
-  - Animation: Row slides right, transforms to color, moves to sorted position
-  - Haptic: light impact
-  - Clears `completedDate`
-
-#### 2. Pull Down to Add
-- Pull down at top of list → Opens search modal
-- Threshold: 60px pull distance
-- Visual feedback: stretchy effect + "Add Game..." text
-- Haptic: medium impact on trigger
-
-#### 3. Pinch to Delete
-- Pinch gesture on row → Delete game
-- Confirmation modal: "Delete [Game Name]?"
-- Animation: Row shrinks and fades out
-- Haptic: heavy impact
-
-#### 4. Long Press to Edit
-- Long press (500ms) → Open edit modal
-- Haptic: medium impact on trigger
-- Edit modal shows:
-  - Game name (read-only)
-  - Platform (read-only)
-  - Playtime hours (editable number input)
-  - Completed date (date picker)
-  - Delete button
-
-#### 5. Drag to Reorder (Unplayed only)
-- Long press + drag on unplayed game
-- Visual feedback: Row scales up 5%, shadow increases
-- Haptic: light impact on pickup, light impact on drop
+#### 2. Long Press to Drag (Unplayed only)
+- Long press (200ms) + drag on unplayed game
+- Drag is constrained to unplayed section only
+- Visual feedback: Row scales up slightly
 - Updates `sortOrder` on drop
 
-### Search Modal
+#### 3. Info Button to Edit
+- Tap (i) button → Open edit modal
+- Haptic: light impact
+- Edit modal shows:
+  - Game name, platform, box art (read-only)
+  - Toggle completed button
+  - Delete button (with confirmation)
+
+### Search Bar (Bottom of Screen)
 ```
 ┌─────────────────────────┐
-│  🔍 Search Games    [X] │
-├─────────────────────────┤
-│  [Search input box...]  │
-├─────────────────────────┤
-│  Game 1                 │
-│  Platform: Multi        │
-├─────────────────────────┤
-│  Game 2                 │
-│  Platform: Multi        │
+│ 🔍 Search games...  [X] │
 └─────────────────────────┘
 ```
 
 **Flow:**
-1. User types game name
-2. API search (debounced 300ms)
-3. Show results with box art
-4. Tap result → Platform selection modal (if multi-platform)
-5. Select platform → Add to list with next available color
+1. Tap search bar to activate
+2. Type game name (debounced 300ms search)
+3. Results overlay appears with box art
+4. Tap result → Platform selection (if multi-platform)
+5. Select platform → Add to TOP of list
+6. Search closes automatically
 
 ---
 
@@ -471,37 +445,37 @@ npm run test:all
 
 ---
 
-### Phase 3: UI Components - Game Row
+### Phase 3: UI Components - Game Row ✅ COMPLETE
 **Goal:** Create the Clear-style game row component
 
 **Tasks:**
 
-#### 3.1 Color System
-1. [ ] Create `src/utils/colors.ts`
-   - Define `CLEAR_COLORS` array
-   - `getColorForIndex(index: number)`
-   - `getCompletedColor()`
-   - Helper functions for gradients
+#### 3.1 Color System ✅ COMPLETE
+1. ✅ Create `src/utils/colors.ts`
+   - Define `CLEAR_COLORS` array (7 colors)
+   - `getGameColor(colorIndex, isCompleted)` - returns color for index
+   - `getGradientProps(color, opacity)` - returns LinearGradient props
+   - `COMPLETED_OPACITY` constant for greyed-out state
 
-#### 3.2 Game Row Component
-1. [ ] Create `src/components/GameRow.tsx`
-   - Props: `game`, `onSwipe`, `onLongPress`, `onPinch`
-   - Render box art image
+#### 3.2 Game Row Component ✅ COMPLETE
+1. ✅ Create `src/components/GameRow.tsx`
+   - Props: `game`, `onSwipe`, `onInfo`, `isDragging`
+   - Render box art image with placeholder fallback
    - Render game name (truncate if long)
-   - Render platform logo
-   - Apply linear gradient background
+   - Render info button (i) for opening edit modal
+   - Apply linear gradient background (separate layer for proper sizing)
    - Handle completed state (grey color, lower opacity)
-   - Responsive to gestures (covered in Phase 5)
-2. [ ] Style the row
-   - 80px height
-   - 60x60 box art with rounded corners
+   - Swipe right gesture with animated indicator
+2. ✅ Style the row
+   - 88px height
+   - 64x64 box art with rounded corners
    - Proper spacing and alignment
-   - Platform logo positioned right
+   - Info button positioned right
    - Text overflow handling
-3. [ ] Add placeholder for missing box art
-4. [ ] Add placeholder for missing platform logo
+3. ✅ Add placeholder for missing box art (game emoji)
+4. ✅ Haptic feedback on swipe threshold
 
-**Acceptance Criteria:**
+**Acceptance Criteria:** ✅ All met
 - Game row displays correctly with all elements
 - Colors cycle through CLEAR_COLORS
 - Completed games appear greyed out
@@ -509,46 +483,45 @@ npm run test:all
 
 ---
 
-### Phase 4: Core Functionality - Game List
+### Phase 4: Core Functionality - Game List ✅ COMPLETE
 **Goal:** Build main game list with sorting and basic display
 
 **Tasks:**
 
-#### 4.1 Sorting Logic
-1. [ ] Create `src/utils/sorting.ts`
-   - `sortGames(games: Game[]): { unplayed: Game[], completed: Game[] }`
+#### 4.1 Sorting Logic ✅ COMPLETE
+1. ✅ Create `src/utils/sorting.ts`
+   - `sortGames(games: Game[]): SortedGames`
    - Unplayed: sort by `sortOrder` ascending
    - Completed: sort by `completedDate` descending
-   - Helper functions
+   - Unit tests for sorting logic
 
-#### 4.2 useGames Hook
-1. [ ] Create `src/hooks/useGames.ts`
-   - State: `games`, `loading`, `error`
+#### 4.2 useGames Hook ✅ COMPLETE
+1. ✅ Create `src/hooks/useGames.ts`
+   - State: `games`, `sortedGames`, `loading`, `error`
    - `loadGames()` - load from storage
    - `addGame(game)` - add and save
    - `updateGame(id, updates)` - update and save
    - `deleteGame(id)` - delete and save
    - `toggleCompleted(id)` - toggle completed status
    - `reorderGames(reorderedIds)` - update sort order
-   - Auto-refresh sorted lists
+   - Memoized sorted lists
 
-#### 4.3 Game List Component
-1. [ ] Create `src/components/GameList.tsx`
-   - Use `useGames` hook
-   - Render two sections: unplayed and completed
+#### 4.3 Game List Component ✅ COMPLETE
+1. ✅ Create `src/components/GameList.tsx`
    - Use `DraggableFlatList` for unplayed section
-   - Use regular `FlatList` for completed section
-   - Add section header "Completed Games"
-   - Handle empty states ("No games yet", "No completed games")
-   - Pull-to-refresh functionality (reload from API if needed)
+   - Completed section as `ListFooterComponent`
+   - Add section header "Completed (count)"
+   - Handle empty states
+   - Long press to drag for reordering (unplayed only)
+   - Drag constrained to unplayed section
 
-#### 4.4 Home Screen
-1. [ ] Create `src/screens/HomeScreen.tsx`
+#### 4.4 Home Screen ✅ COMPLETE
+1. ✅ Create `src/screens/HomeScreen.tsx`
    - Render `GameList`
-   - Handle navigation (when modals are added)
-   - Safe area handling
+   - Safe area handling with `useSafeAreaInsets`
+   - Edit modal integration
 
-**Acceptance Criteria:**
+**Acceptance Criteria:** ✅ All met
 - Games load from storage on app start
 - Unplayed games appear at top in manual order
 - Completed games appear at bottom sorted by completion date
@@ -557,125 +530,109 @@ npm run test:all
 
 ---
 
-### Phase 5: Gestures & Interactions
-**Goal:** Implement all Clear-style gestures
+### Phase 5: Gestures & Interactions ✅ COMPLETE
+**Goal:** Implement Clear-style gestures (simplified)
 
 **Tasks:**
 
-#### 5.1 Haptics Hook
-1. [ ] Create `src/hooks/useHaptics.ts`
+#### 5.1 Haptics Hook ✅ COMPLETE
+1. ✅ Create `src/hooks/useHaptics.ts`
    - Wrapper around react-native-haptic-feedback
-   - `triggerLight()`, `triggerMedium()`, `triggerHeavy()`
+   - `light()`, `medium()`, `heavy()`, `selection()`
    - iOS-specific configuration
 
-#### 5.2 Swipe to Complete
-1. [ ] Add swipe gesture to `GameRow`
-   - Use `react-native-gesture-handler` PanGestureHandler
-   - Detect right swipe (threshold: 100px)
-   - Trigger `onSwipe` callback
-   - Animate row transformation (color change, position)
-   - Haptic feedback on completion
-2. [ ] Implement `handleSwipe` in `GameList`
+#### 5.2 Swipe to Complete ✅ COMPLETE
+1. ✅ Add swipe gesture to `GameRow`
+   - Use `react-native-gesture-handler` Gesture.Pan()
+   - Detect right swipe (threshold: 60px)
+   - Animated swipe indicator (checkmark/undo)
+   - Haptic feedback on threshold crossing
+2. ✅ Implement `handleSwipe` in `HomeScreen`
    - Call `toggleCompleted(gameId)`
-   - Animate row moving to new section
+   - Row moves to/from completed section
 
-#### 5.3 Drag to Reorder (Unplayed)
-1. [ ] Configure `DraggableFlatList` for unplayed section
-   - Enable drag on long press
-   - Scale animation on pickup
-   - Haptic feedback on pickup and drop
-2. [ ] Implement `handleReorder` callback
-   - Update `sortOrder` for all affected games
+#### 5.3 Drag to Reorder (Unplayed) ✅ COMPLETE
+1. ✅ Configure `DraggableFlatList` for unplayed section
+   - Long press (200ms) to initiate drag
+   - Drag constrained to unplayed section only
+   - Visual feedback when dragging
+2. ✅ Implement `handleReorder` callback
+   - Update `sortOrder` for reordered games
    - Save to storage
 
-#### 5.4 Long Press to Edit
-1. [ ] Add long press gesture to `GameRow`
-   - Use `LongPressGestureHandler` (500ms)
-   - Trigger `onLongPress` callback
-   - Haptic feedback
-2. [ ] Create `src/components/EditModal.tsx`
-   - Show game details
-   - Editable fields: playtime, completed date
-   - Delete button
-   - Save and Cancel buttons
-3. [ ] Integrate edit modal with `GameList`
+#### 5.4 Info Button to Edit ✅ COMPLETE
+1. ✅ Add info button (i) to `GameRow`
+   - Tap to open edit modal
+   - Haptic feedback on tap
+2. ✅ Create `src/components/EditModal.tsx`
+   - Show game details (name, platform, box art)
+   - Toggle completed status button
+   - Delete button with confirmation
+   - Close button
+3. ✅ Integrate edit modal with `HomeScreen`
 
-#### 5.5 Pinch to Delete
-1. [ ] Add pinch gesture to `GameRow`
-   - Use `PinchGestureHandler`
-   - Detect pinch-in (scale < 0.8)
-   - Trigger `onPinch` callback
-   - Haptic feedback
-2. [ ] Create `src/components/DeleteConfirm.tsx`
-   - Confirmation modal with game name
-   - Confirm and Cancel buttons
-3. [ ] Implement delete flow in `GameList`
+#### 5.5 Pinch to Delete - REMOVED
+- Simplified: Delete via edit modal instead
 
-#### 5.6 Pull Down to Add
-1. [ ] Create `src/components/PullToAdd.tsx`
-   - Wrap top of GameList
-   - Detect pull-down gesture (60px threshold)
-   - Show "Add Game..." text and icon
-   - Trigger search modal on release
-   - Haptic feedback
-2. [ ] Integrate with `GameList`
+#### 5.6 Pull Down to Add - REMOVED
+- Simplified: Persistent search bar at bottom instead
 
-**Acceptance Criteria:**
+**Acceptance Criteria:** ✅ All met
 - Swipe right marks game as played/unplayed
 - Drag and drop reorders unplayed games
-- Long press opens edit modal
-- Pinch gesture deletes game (with confirmation)
-- Pull down opens add game search
+- Info button opens edit modal
+- Delete available through edit modal
 - All gestures have appropriate haptic feedback
-- Animations are smooth and Clear-like
+- Animations are smooth
 
 ---
 
-### Phase 6: Search & Add Games
+### Phase 6: Search & Add Games ✅ COMPLETE
 **Goal:** Implement game search and adding functionality
 
 **Tasks:**
 
-#### 6.1 Search Hook
-1. [ ] Create `src/hooks/useGameSearch.ts`
-   - State: `query`, `results`, `loading`, `error`
-   - `searchGames(query)` with debouncing (300ms)
-   - Call RAWG API service
-   - Handle empty results
+#### 6.1 Search Bar ✅ COMPLETE
+1. ✅ Create `src/components/SearchBar.tsx`
+   - Persistent search bar at bottom of screen
+   - Text input with clear button
+   - Cancel button when active
+   - Keyboard handling
 
-#### 6.2 Search Modal
-1. [ ] Create `src/components/SearchModal.tsx`
-   - Search input with debouncing
+#### 6.2 Search Results ✅ COMPLETE
+1. ✅ Create `src/components/SearchResults.tsx`
+   - Full-screen overlay when search is active
    - Display search results with box art
-   - Show "Searching..." loading state
-   - Show "No results" empty state
+   - Show loading spinner
+   - Show error messages
    - Tap result → trigger platform selection
-   - Close button
 
-#### 6.3 Platform Selection Modal
-1. [ ] Create `src/components/PlatformModal.tsx`
+#### 6.3 Platform Selection Modal ✅ COMPLETE
+1. ✅ Platform selector in `SearchResults.tsx`
    - Show list of platforms for selected game
-   - Display platform names and logos
+   - Display platform names
    - Tap platform → add game to list
-   - Back button to return to search
+   - Cancel button to close
 
-#### 6.4 Integration
-1. [ ] Connect search flow in `HomeScreen`
-   - Pull-to-add triggers search modal
+#### 6.4 Integration ✅ COMPLETE
+1. ✅ Connect search flow in `HomeScreen`
+   - Debounced search (300ms)
    - Search → select game → select platform → add to list
-   - Assign next color in rotation
-   - Set initial `sortOrder` (max + 1 of unplayed games)
-   - Close modals on success
-   - Show success feedback (haptic + animation)
+   - New games added to TOP of list (sortOrder: 0)
+   - Existing games shifted down
+   - Duplicate detection (same game + platform)
+   - Close search on success
+   - Haptic feedback
 
-**Acceptance Criteria:**
+**Acceptance Criteria:** ✅ All met
 - Can search for games via RAWG API
 - Search is debounced properly
 - Results show box art and game info
 - Can select specific platform for multi-platform games
 - Game is added to list with correct data
+- New games appear at top of list
 - Colors cycle properly
-- All modals close correctly
+- Search closes after adding
 
 ---
 
@@ -964,10 +921,10 @@ module.exports = {
 ## Session Tracking
 
 ### Current Session Status
-- **Date**: 2025-12-26
-- **Phase**: Phase 2 Complete, Ready for Phase 3
-- **Last Completed**: Data Layer & Storage with full test coverage (51 tests)
-- **Next Steps**: Begin Phase 3 - UI Components (Game Row)
+- **Date**: 2025-12-27
+- **Phase**: Phase 6 Complete - MVP Ready!
+- **Last Completed**: Search & Add Games functionality
+- **Next Steps**: Phase 7 - Polish & Refinement (optional)
 
 ### Session Notes
 Use this section to track progress across multiple sessions:
@@ -1034,6 +991,43 @@ Use this section to track progress across multiple sessions:
 - Created PR #3 - merged
 - Phase 2 fully complete
 
+#### Session 6 (2025-12-26)
+- Implemented Phase 3: GameRow component
+  - Clear-style gradient backgrounds
+  - Box art with placeholder fallback
+  - Swipe gesture with animated indicator
+  - Info button for edit modal
+- Implemented Phase 4: GameList with drag-and-drop
+  - DraggableFlatList for unplayed games
+  - Completed section as ListFooterComponent
+  - Long press to drag (constrained to unplayed)
+- Implemented Phase 5: Gestures & Interactions
+  - Swipe right to toggle completion
+  - Haptic feedback via useHaptics hook
+  - EditModal for game details/delete
+  - Simplified interactions (removed pinch, pull-down)
+- Fixed visual issues:
+  - LinearGradient sizing (separate background layer)
+  - Edge-to-edge rows
+  - Safe area handling
+- Created PR #6 - merged
+- Phases 3, 4, 5 complete
+
+#### Session 7 (2025-12-27)
+- Implemented Phase 6: Search & Add Games
+  - Persistent SearchBar at bottom of screen
+  - SearchResults overlay with RAWG API integration
+  - Platform selection modal for multi-platform games
+  - Debounced search (300ms)
+  - New games added to TOP of list
+  - Duplicate detection
+- Simplified interactions further:
+  - Removed pull-to-refresh
+  - Removed floating + button
+- Fixed scrolling issue (nested ScrollView → ListFooterComponent)
+- Created PR #7 - merged
+- Phase 6 complete - MVP ready!
+
 ---
 
 ## Questions & Decisions Log
@@ -1058,16 +1052,16 @@ Use this section to track progress across multiple sessions:
 
 ## Success Metrics
 
-### MVP Success Criteria (Phases 1-6)
-- [ ] Can add games from RAWG API
-- [ ] Can select specific platform for each game
-- [ ] Can drag-and-drop to reorder unplayed games
-- [ ] Can swipe to mark as played/unplayed
-- [ ] Completed games appear at bottom, greyed out
-- [ ] Completed games sorted by completion date
-- [ ] Clear-style UI with gradients and colors
-- [ ] All gestures work smoothly
-- [ ] App is stable and performant
+### MVP Success Criteria (Phases 1-6) ✅ ALL COMPLETE
+- [x] Can add games from RAWG API
+- [x] Can select specific platform for each game
+- [x] Can drag-and-drop to reorder unplayed games
+- [x] Can swipe to mark as played/unplayed
+- [x] Completed games appear at bottom, greyed out
+- [x] Completed games sorted by completion date
+- [x] Clear-style UI with gradients and colors
+- [x] All gestures work smoothly
+- [x] App is stable and performant
 
 ### Long-term Success Criteria (Phase 9)
 - [ ] Games sync across devices via iCloud
