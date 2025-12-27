@@ -36,7 +36,7 @@ export function HomeScreen() {
   const [isSearchActive, setIsSearchActive] = useState(false);
 
   // Debounce timer
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Search when query changes (debounced)
   useEffect(() => {
@@ -188,6 +188,7 @@ export function HomeScreen() {
         onReorder={handleReorder}
         onSwipe={handleSwipe}
         onInfo={handleInfo}
+        onRetry={loadGames}
       />
 
       {/* Search results overlay */}

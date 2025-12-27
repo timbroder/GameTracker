@@ -9,10 +9,10 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   Modal,
 } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GameSearchResult, Platform } from '../types';
 
@@ -85,10 +85,13 @@ function SearchResultRow({
   return (
     <TouchableOpacity style={styles.resultRow} onPress={onPress}>
       {game.background_image ? (
-        <Image
-          source={{ uri: game.background_image }}
+        <FastImage
+          source={{
+            uri: game.background_image,
+            priority: FastImage.priority.normal,
+          }}
           style={styles.resultImage}
-          resizeMode="cover"
+          resizeMode={FastImage.resizeMode.cover}
         />
       ) : (
         <View style={[styles.resultImage, styles.placeholderImage]}>

@@ -9,7 +9,8 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -56,7 +57,7 @@ function BoxArtPlaceholder() {
 }
 
 /**
- * Box art image with loading state and error fallback
+ * Box art image with caching and error fallback
  */
 function BoxArt({ url }: { url: string }) {
   const [hasError, setHasError] = React.useState(false);
@@ -66,10 +67,14 @@ function BoxArt({ url }: { url: string }) {
   }
 
   return (
-    <Image
-      source={{ uri: url }}
+    <FastImage
+      source={{
+        uri: url,
+        priority: FastImage.priority.normal,
+        cache: FastImage.cacheControl.immutable,
+      }}
       style={styles.boxArt}
-      resizeMode="cover"
+      resizeMode={FastImage.resizeMode.cover}
       onError={() => setHasError(true)}
     />
   );
