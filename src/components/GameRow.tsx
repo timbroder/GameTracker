@@ -9,7 +9,7 @@
  */
 
 import React, { memo, useCallback } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   useSharedValue,
@@ -30,8 +30,7 @@ import { useHaptics } from '../hooks/useHaptics';
 export interface GameRowProps {
   game: Game;
   onSwipe?: (gameId: string) => void;
-  onLongPress?: (gameId: string) => void;
-  onPinch?: (gameId: string) => void;
+  onInfo?: (gameId: string) => void;
   isDragging?: boolean;
 }
 
@@ -77,63 +76,14 @@ function BoxArt({ url }: { url: string }) {
 }
 
 /**
- * Platform badge showing platform name
+ * Info button to open details modal
  */
-function PlatformBadge({
-  name,
-  logoUrl,
-}: {
-  name: string;
-  logoUrl?: string;
-}) {
-  const [hasError, setHasError] = React.useState(false);
-
-  if (logoUrl && !hasError) {
-    return (
-      <Image
-        source={{ uri: logoUrl }}
-        style={styles.platformLogo}
-        resizeMode="contain"
-        onError={() => setHasError(true)}
-      />
-    );
-  }
-
-  const abbreviation = getPlatformAbbreviation(name);
+function InfoButton({ onPress }: { onPress: () => void }) {
   return (
-    <View style={styles.platformBadge}>
-      <Text style={styles.platformBadgeText}>{abbreviation}</Text>
-    </View>
+    <TouchableOpacity style={styles.infoButton} onPress={onPress}>
+      <Text style={styles.infoButtonText}>i</Text>
+    </TouchableOpacity>
   );
-}
-
-/**
- * Get abbreviated platform name for badge
- */
-function getPlatformAbbreviation(name: string): string {
-  const abbreviations: Record<string, string> = {
-    'PlayStation 5': 'PS5',
-    'PlayStation 4': 'PS4',
-    'PlayStation 3': 'PS3',
-    'PlayStation 2': 'PS2',
-    PlayStation: 'PS1',
-    'Xbox Series S/X': 'XSX',
-    'Xbox One': 'XB1',
-    'Xbox 360': 'X360',
-    Xbox: 'Xbox',
-    'Nintendo Switch': 'NSW',
-    'Nintendo 3DS': '3DS',
-    'Nintendo DS': 'NDS',
-    Wii: 'Wii',
-    'Wii U': 'WiiU',
-    PC: 'PC',
-    macOS: 'Mac',
-    Linux: 'Linux',
-    iOS: 'iOS',
-    Android: 'And',
-  };
-
-  return abbreviations[name] || name.substring(0, 4);
 }
 
 /**
@@ -142,7 +92,7 @@ function getPlatformAbbreviation(name: string): string {
 function GameRowComponent({
   game,
   onSwipe,
-  onLongPress,
+  onInfo,
   isDragging = false,
 }: GameRowProps) {
   const haptics = useHaptics();
@@ -160,12 +110,12 @@ function GameRowComponent({
     }
   }, [onSwipe, game.id, haptics]);
 
-  const handleLongPress = useCallback(() => {
-    if (onLongPress) {
-      haptics.medium();
-      onLongPress(game.id);
+  const handleInfo = useCallback(() => {
+    if (onInfo) {
+      haptics.light();
+      onInfo(game.id);
     }
-  }, [onLongPress, game.id, haptics]);
+  }, [onInfo, game.id, haptics]);
 
   // Pan gesture for swipe
   const panGesture = Gesture.Pan()
@@ -198,15 +148,6 @@ function GameRowComponent({
       isSwipeTriggered.value = false;
     });
 
-  // Long press gesture
-  const longPressGesture = Gesture.LongPress()
-    .minDuration(500)
-    .onStart(() => {
-      runOnJS(handleLongPress)();
-    });
-
-  // Combine gestures - pan takes priority
-  const composedGesture = Gesture.Race(panGesture, longPressGesture);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
@@ -217,7 +158,7 @@ function GameRowComponent({
   }));
 
   return (
-    <GestureDetector gesture={composedGesture}>
+    <GestureDetector gesture={panGesture}>
       <Animated.View style={styles.rowWrapper}>
         {/* Swipe indicator behind the row */}
         <Animated.View style={[styles.swipeIndicator, swipeIndicatorStyle]}>
@@ -256,11 +197,8 @@ function GameRowComponent({
               </Text>
             </View>
 
-            {/* Platform Badge */}
-            <PlatformBadge
-              name={game.platform}
-              logoUrl={game.platformLogoUrl}
-            />
+            {/* Info Button */}
+            <InfoButton onPress={handleInfo} />
           </View>
         </Animated.View>
       </Animated.View>
@@ -334,19 +272,18 @@ const styles = StyleSheet.create({
   completedText: {
     opacity: 0.7,
   },
-  platformLogo: {
-    width: 24,
-    height: 24,
+  infoButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  platformBadge: {
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  platformBadgeText: {
-    fontSize: 11,
+  infoButtonText: {
+    fontSize: 14,
     fontWeight: '600',
+    fontStyle: 'italic',
     color: '#FFFFFF',
   },
   dragging: {
