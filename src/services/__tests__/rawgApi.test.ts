@@ -84,22 +84,23 @@ describe('RAWG API Service', () => {
       });
       mockAxios.isAxiosError.mockReturnValue(true);
 
-      await expect(searchGames('test')).rejects.toThrow('Invalid RAWG API key');
+      await expect(searchGames('test')).rejects.toThrow('Invalid API key');
     });
 
-    it('should throw error for rate limit', async () => {
+    it('should throw error for rate limit after retries', async () => {
       mockGet.mockRejectedValue({
         isAxiosError: true,
         response: { status: 429 },
       });
       mockAxios.isAxiosError.mockReturnValue(true);
 
+      // Rate limit is retried, so this will take longer
       await expect(searchGames('test')).rejects.toThrow(
-        'API rate limit exceeded',
+        'Too many requests',
       );
-    });
+    }, 15000);
 
-    it('should throw error for network issues', async () => {
+    it('should throw error for network issues after retries', async () => {
       mockGet.mockRejectedValue({
         isAxiosError: true,
         request: {},
@@ -107,10 +108,11 @@ describe('RAWG API Service', () => {
       });
       mockAxios.isAxiosError.mockReturnValue(true);
 
+      // Network errors are retried, so this will take longer
       await expect(searchGames('test')).rejects.toThrow(
-        'Network error. Please check your connection.',
+        'No internet connection',
       );
-    });
+    }, 15000);
   });
 
   describe('getGameDetails', () => {
@@ -139,7 +141,7 @@ describe('RAWG API Service', () => {
       });
       mockAxios.isAxiosError.mockReturnValue(true);
 
-      await expect(getGameDetails(999)).rejects.toThrow('Resource not found');
+      await expect(getGameDetails(999)).rejects.toThrow('Game not found');
     });
   });
 

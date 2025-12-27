@@ -277,5 +277,64 @@ describe('Game Manager Service', () => {
 
       expect(result).toBe(false);
     });
+
+    it('should return false for empty game list', async () => {
+      mockStorage.loadGames.mockResolvedValueOnce([]);
+
+      const result = await gameExists(12345, 187);
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should assign sortOrder at end when marking completed game as unplayed', async () => {
+      const unplayedGame = { ...mockGame, id: 'unplayed', sortOrder: 0 };
+      const completedGame = {
+        ...mockGame,
+        id: 'completed',
+        isCompleted: true,
+        completedDate: '2025-01-10T00:00:00.000Z',
+        sortOrder: 5, // Old sort order from when it was unplayed
+      };
+      mockStorage.loadGames.mockResolvedValueOnce([unplayedGame, completedGame]);
+      mockStorage.saveGames.mockResolvedValueOnce(undefined);
+
+      const result = await toggleCompleted('completed');
+
+      // Should get sortOrder 1 (next after unplayedGame's 0)
+      expect(result.sortOrder).toBe(1);
+    });
+
+    it('should handle deleting the only game', async () => {
+      mockStorage.loadGames.mockResolvedValueOnce([mockGame]);
+      mockStorage.saveGames.mockResolvedValueOnce(undefined);
+
+      await deleteGame('existing-id');
+
+      expect(mockStorage.saveGames).toHaveBeenCalledWith([]);
+    });
+
+    it('should handle reordering with empty list', async () => {
+      mockStorage.loadGames.mockResolvedValueOnce([]);
+      mockStorage.saveGames.mockResolvedValueOnce(undefined);
+
+      await reorderGames([]);
+
+      expect(mockStorage.saveGames).toHaveBeenCalledWith([]);
+    });
+
+    it('should handle reordering with single game', async () => {
+      mockStorage.loadGames.mockResolvedValueOnce([mockGame]);
+      mockStorage.saveGames.mockResolvedValueOnce(undefined);
+
+      await reorderGames(['existing-id']);
+
+      expect(mockStorage.saveGames).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ id: 'existing-id', sortOrder: 0 }),
+        ]),
+      );
+    });
   });
 });

@@ -30,12 +30,14 @@ function getNextColorIndex(games: Game[]): number {
 
 /**
  * Shift all unplayed games' sort order up by 1 to make room at the top
+ * Returns a new array with updated sort orders (does not mutate original)
  */
-function shiftSortOrders(games: Game[]): void {
-  games.forEach((game) => {
+function shiftSortOrders(games: Game[]): Game[] {
+  return games.map((game) => {
     if (!game.isCompleted) {
-      game.sortOrder += 1;
+      return { ...game, sortOrder: game.sortOrder + 1 };
     }
+    return game;
   });
 }
 
@@ -58,7 +60,7 @@ export async function addGame(input: NewGameInput): Promise<Game> {
   const games = await loadGames();
 
   // Shift existing games down to make room at the top
-  shiftSortOrders(games);
+  const shiftedGames = shiftSortOrders(games);
 
   const newGame: Game = {
     ...input,
@@ -69,7 +71,7 @@ export async function addGame(input: NewGameInput): Promise<Game> {
     isCompleted: false,
   };
 
-  const updatedGames = [...games, newGame];
+  const updatedGames = [...shiftedGames, newGame];
   await saveGames(updatedGames);
 
   return newGame;

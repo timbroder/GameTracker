@@ -7,6 +7,9 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import type { GameSearchResult, GameDetails, Platform } from '../types/game';
 
 const BASE_URL = 'https://api.rawg.io/api';
+const DEFAULT_TIMEOUT = 10000;
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
 
 // API key should be set via setApiKey() before making requests
 let apiKey: string | null = null;
@@ -41,8 +44,63 @@ function createClient(): AxiosInstance {
     params: {
       key: apiKey,
     },
-    timeout: 10000,
+    timeout: DEFAULT_TIMEOUT,
   });
+}
+
+/**
+ * Check if an error is retryable
+ */
+function isRetryableError(error: unknown): boolean {
+  if (axios.isAxiosError(error)) {
+    const axiosError = error as AxiosError;
+    // Retry on network errors or 5xx server errors
+    if (!axiosError.response) {
+      return true; // Network error
+    }
+    const status = axiosError.response.status;
+    return status >= 500 || status === 429;
+  }
+  return false;
+}
+
+/**
+ * Sleep for a specified number of milliseconds
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Execute a function with retry logic and exponential backoff
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES,
+): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry if it's not a retryable error
+      if (!isRetryableError(error)) {
+        throw error;
+      }
+
+      // Don't wait after the last attempt
+      if (attempt < maxRetries) {
+        const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
+        console.log(`[RAWG API] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        await sleep(delay);
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 /**
@@ -54,18 +112,22 @@ function handleApiError(error: unknown): never {
     if (axiosError.response) {
       const status = axiosError.response.status;
       if (status === 401) {
-        throw new Error('Invalid RAWG API key');
+        throw new Error('Invalid API key. Please check your RAWG API configuration.');
       } else if (status === 404) {
-        throw new Error('Resource not found');
+        throw new Error('Game not found');
       } else if (status === 429) {
-        throw new Error('API rate limit exceeded. Please try again later.');
+        throw new Error('Too many requests. Please wait a moment and try again.');
+      } else if (status >= 500) {
+        throw new Error('Game server is temporarily unavailable. Please try again.');
       }
-      throw new Error(`API error: ${status}`);
+      throw new Error(`Unable to load games (error ${status})`);
+    } else if (axiosError.code === 'ECONNABORTED') {
+      throw new Error('Request timed out. Please check your connection and try again.');
     } else if (axiosError.request) {
-      throw new Error('Network error. Please check your connection.');
+      throw new Error('No internet connection. Please check your network and try again.');
     }
   }
-  throw new Error('An unexpected error occurred');
+  throw new Error('Something went wrong. Please try again.');
 }
 
 /**
@@ -82,17 +144,19 @@ export async function searchGames(
   }
 
   try {
-    const client = createClient();
-    const response = await client.get<{ results: GameSearchResult[] }>(
-      '/games',
-      {
-        params: {
-          search: query,
-          page_size: Math.min(pageSize, 40),
+    return await withRetry(async () => {
+      const client = createClient();
+      const response = await client.get<{ results: GameSearchResult[] }>(
+        '/games',
+        {
+          params: {
+            search: query,
+            page_size: Math.min(pageSize, 40),
+          },
         },
-      },
-    );
-    return response.data.results;
+      );
+      return response.data.results;
+    });
   } catch (error) {
     handleApiError(error);
   }
@@ -104,9 +168,11 @@ export async function searchGames(
  */
 export async function getGameDetails(gameId: number): Promise<GameDetails> {
   try {
-    const client = createClient();
-    const response = await client.get<GameDetails>(`/games/${gameId}`);
-    return response.data;
+    return await withRetry(async () => {
+      const client = createClient();
+      const response = await client.get<GameDetails>(`/games/${gameId}`);
+      return response.data;
+    });
   } catch (error) {
     handleApiError(error);
   }
@@ -118,13 +184,15 @@ export async function getGameDetails(gameId: number): Promise<GameDetails> {
  */
 export async function getPlatforms(pageSize: number = 50): Promise<Platform[]> {
   try {
-    const client = createClient();
-    const response = await client.get<{ results: Platform[] }>('/platforms', {
-      params: {
-        page_size: pageSize,
-      },
+    return await withRetry(async () => {
+      const client = createClient();
+      const response = await client.get<{ results: Platform[] }>('/platforms', {
+        params: {
+          page_size: pageSize,
+        },
+      });
+      return response.data.results;
     });
-    return response.data.results;
   } catch (error) {
     handleApiError(error);
   }
