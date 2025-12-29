@@ -16,3 +16,6 @@ export type { SearchBarProps } from './SearchBar';
 
 export { SearchResults } from './SearchResults';
 export type { SearchResultsProps } from './SearchResults';
+
+export { SyncIndicator } from './SyncIndicator';
+export type { SyncIndicatorProps } from './SyncIndicator';

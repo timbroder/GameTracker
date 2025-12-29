@@ -5,8 +5,8 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GameList, EditModal, SearchBar, SearchResults } from '../components';
-import { useGames } from '../hooks';
+import { GameList, EditModal, SearchBar, SearchResults, SyncIndicator } from '../components';
+import { useGames, useICloudSync } from '../hooks';
 import { searchGames } from '../services/rawgApi';
 import { addGame as addGameService, gameExists } from '../services/gameManager';
 import type { Game, GameSearchResult, Platform } from '../types';
@@ -23,6 +23,13 @@ export function HomeScreen() {
     reorderGames,
     deleteGame,
   } = useGames();
+
+  // iCloud sync
+  const iCloudSync = useICloudSync({
+    syncOnLaunch: true,
+    syncOnForeground: true,
+    onGamesUpdated: loadGames,
+  });
 
   // Edit modal state
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -180,6 +187,19 @@ export function HomeScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Sync indicator header */}
+      <View style={styles.header}>
+        <SyncIndicator
+          isAvailable={iCloudSync.isAvailable}
+          isSyncing={iCloudSync.isSyncing}
+          lastSyncTime={iCloudSync.lastSyncTime}
+          lastSyncSuccess={iCloudSync.lastSyncSuccess}
+          lastSyncMessage={iCloudSync.lastSyncMessage}
+          availabilityMessage={iCloudSync.availabilityMessage}
+          sync={iCloudSync.sync}
+        />
+      </View>
+
       {/* Game list */}
       <GameList
         sortedGames={sortedGames}
@@ -226,6 +246,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
 });
 
