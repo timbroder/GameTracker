@@ -37,6 +37,8 @@ export interface ICloudSyncState {
 export interface ICloudSyncActions {
   /** Trigger a manual sync */
   sync: () => Promise<void>;
+  /** Trigger a debounced sync after local data changes */
+  syncAfterChange: () => void;
   /** Force upload local data to iCloud */
   forceUpload: () => Promise<void>;
   /** Force download data from iCloud */
@@ -52,6 +54,8 @@ interface UseICloudSyncOptions {
   syncOnLaunch?: boolean;
   /** Whether to sync when app comes to foreground (default: true) */
   syncOnForeground?: boolean;
+  /** Debounce delay for syncAfterChange in ms (default: 2000) */
+  debounceDelay?: number;
   /** Callback when games are updated from cloud */
   onGamesUpdated?: () => void;
 }
@@ -60,6 +64,7 @@ export function useICloudSync(options: UseICloudSyncOptions = {}): UseICloudSync
   const {
     syncOnLaunch = true,
     syncOnForeground = true,
+    debounceDelay = 2000,
     onGamesUpdated,
   } = options;
 
@@ -72,6 +77,7 @@ export function useICloudSync(options: UseICloudSyncOptions = {}): UseICloudSync
 
   const hasInitialized = useRef(false);
   const appState = useRef(AppState.currentState);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Check iCloud availability
   const checkAvailability = useCallback(async () => {
@@ -148,6 +154,32 @@ export function useICloudSync(options: UseICloudSyncOptions = {}): UseICloudSync
     }
   }, [isSyncing, onGamesUpdated]);
 
+  // Debounced sync after local data changes
+  // This prevents excessive syncing when user makes rapid changes (e.g., reordering)
+  const syncAfterChange = useCallback(() => {
+    // Update local timestamp to mark that we have newer data
+    setLastSyncTimestamp(Date.now());
+
+    // Clear any pending debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Schedule sync after debounce delay
+    debounceTimerRef.current = setTimeout(() => {
+      sync();
+    }, debounceDelay);
+  }, [sync, debounceDelay]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   // Handle app state changes
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -198,6 +230,7 @@ export function useICloudSync(options: UseICloudSyncOptions = {}): UseICloudSync
     lastSyncSuccess,
     availabilityMessage,
     sync,
+    syncAfterChange,
     forceUpload,
     forceDownload,
     checkAvailability,

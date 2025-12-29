@@ -101,6 +101,9 @@ export function HomeScreen() {
         // Refresh the game list
         await loadGames();
 
+        // Sync to iCloud (debounced)
+        iCloudSync.syncAfterChange();
+
         // Close search
         setSearchQuery('');
         setSearchResults([]);
@@ -110,7 +113,7 @@ export function HomeScreen() {
         Alert.alert('Error', 'Failed to add game. Please try again.');
       }
     },
-    [loadGames]
+    [loadGames, iCloudSync]
   );
 
   const handleSearchFocus = useCallback(() => {
@@ -129,22 +132,24 @@ export function HomeScreen() {
     async (reorderedIds: string[]) => {
       try {
         await reorderGames(reorderedIds);
+        iCloudSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to reorder games');
       }
     },
-    [reorderGames]
+    [reorderGames, iCloudSync]
   );
 
   const handleSwipe = useCallback(
     async (gameId: string) => {
       try {
         await toggleCompleted(gameId);
+        iCloudSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [toggleCompleted]
+    [toggleCompleted, iCloudSync]
   );
 
   const handleInfo = useCallback(
@@ -167,22 +172,24 @@ export function HomeScreen() {
     async (gameId: string) => {
       try {
         await deleteGame(gameId);
+        iCloudSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to delete game');
       }
     },
-    [deleteGame]
+    [deleteGame, iCloudSync]
   );
 
   const handleToggleCompletedFromModal = useCallback(
     async (gameId: string) => {
       try {
         await toggleCompleted(gameId);
+        iCloudSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [toggleCompleted]
+    [toggleCompleted, iCloudSync]
   );
 
   return (
