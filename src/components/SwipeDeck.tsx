@@ -7,13 +7,14 @@
  * - Triggers load more when running low on cards
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { SwipeCard } from './SwipeCard';
 import type { DiscoveryGame } from '../types';
 
 const VISIBLE_CARDS = 3;
+const LOAD_MORE_THRESHOLD = 10;
 
 export interface SwipeDeckProps {
   games: DiscoveryGame[];
@@ -33,26 +34,25 @@ function SwipeDeckComponent({
   // Take only visible cards
   const visibleGames = games.slice(0, VISIBLE_CARDS);
 
+  // Proactively load more when running low on games
+  useEffect(() => {
+    if (games.length > 0 && games.length <= LOAD_MORE_THRESHOLD && !loading) {
+      onNeedMore();
+    }
+  }, [games.length, loading, onNeedMore]);
+
   const handleSwipeLeft = useCallback(
     (game: DiscoveryGame) => {
       onSwipeLeft(game);
-      // Check if we need to load more
-      if (games.length <= VISIBLE_CARDS + 2) {
-        onNeedMore();
-      }
     },
-    [games.length, onSwipeLeft, onNeedMore]
+    [onSwipeLeft]
   );
 
   const handleSwipeRight = useCallback(
     (game: DiscoveryGame) => {
       onSwipeRight(game);
-      // Check if we need to load more
-      if (games.length <= VISIBLE_CARDS + 2) {
-        onNeedMore();
-      }
     },
-    [games.length, onSwipeRight, onNeedMore]
+    [onSwipeRight]
   );
 
   // No cards left
