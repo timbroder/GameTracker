@@ -2,9 +2,28 @@
  * App configuration
  */
 
-import { RAWG_API_KEY } from './secrets';
+import { RAWG_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SYNC_USER_ID_DEV, SYNC_USER_ID_PROD } from './secrets';
 
 let rawgApiKey: string | null = RAWG_API_KEY;
+
+/**
+ * Get Supabase configuration
+ */
+export function getSupabaseConfig(): { url: string; anonKey: string } {
+  return {
+    url: SUPABASE_URL,
+    anonKey: SUPABASE_ANON_KEY,
+  };
+}
+
+/**
+ * Get the sync user ID based on environment
+ * - Dev/Simulator: uses SYNC_USER_ID_DEV
+ * - Production: uses SYNC_USER_ID_PROD
+ */
+export function getSyncUserId(): string {
+  return __DEV__ ? SYNC_USER_ID_DEV : SYNC_USER_ID_PROD;
+}
 
 /**
  * Initialize app configuration
