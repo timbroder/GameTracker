@@ -31,6 +31,30 @@ import {
 } from '../utils/colors';
 import { useHaptics } from '../hooks/useHaptics';
 
+/**
+ * Format completed date for display
+ */
+function formatCompletedDate(isoDate: string): string {
+  const date = new Date(isoDate);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Format as MM/DD/YYYY
+  const dateStr = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+
+  if (diffDays === 0) return `today (${dateStr})`;
+  if (diffDays === 1) return `yesterday (${dateStr})`;
+  if (diffDays < 7) return `${diffDays} days ago (${dateStr})`;
+  if (diffDays < 30) {
+    const weeks = Math.floor(diffDays / 7);
+    return weeks === 1 ? `1 week ago (${dateStr})` : `${weeks} weeks ago (${dateStr})`;
+  }
+
+  // Just show the date for older completions
+  return dateStr;
+}
+
 export interface GameRowProps {
   game: Game;
   onSwipe?: (gameId: string) => void;
@@ -208,6 +232,11 @@ function GameRowComponent({
               >
                 {game.platform}
               </Text>
+              {game.isCompleted && game.completedDate && (
+                <Text style={styles.completedDate}>
+                  Completed {formatCompletedDate(game.completedDate)}
+                </Text>
+              )}
             </View>
 
             {/* Info Button */}
@@ -281,6 +310,11 @@ const styles = StyleSheet.create({
   platformName: {
     fontSize: 13,
     color: 'rgba(255, 255, 255, 0.8)',
+  },
+  completedDate: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginTop: 2,
   },
   completedText: {
     opacity: 0.7,
