@@ -19,7 +19,10 @@ module.exports = {
     '/ios/',
     '/android/',
     '/supabase/', // Deno tests, run separately
-    'testHelpers.ts$', // Don't treat helpers as test files
+  ],
+  testMatch: [
+    '**/__tests__/**/*.test.[jt]s?(x)',
+    '**/?(*.)+(spec|test).[jt]s?(x)',
   ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',

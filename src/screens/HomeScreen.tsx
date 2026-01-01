@@ -5,8 +5,8 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GameList, EditModal, SearchBar, SearchResults } from '../components';
-import { useGames } from '../hooks';
+import { GameList, EditModal, SearchBar, SearchResults, SyncIndicator } from '../components';
+import { useGames, useSupabaseSync } from '../hooks';
 import { searchGames } from '../services/rawgApi';
 import { addGame as addGameService, gameExists } from '../services/gameManager';
 import type { Game, GameSearchResult, Platform } from '../types';
@@ -23,6 +23,13 @@ export function HomeScreen() {
     reorderGames,
     deleteGame,
   } = useGames();
+
+  // Supabase sync
+  const supabaseSync = useSupabaseSync({
+    syncOnLaunch: true,
+    syncOnForeground: true,
+    onGamesUpdated: loadGames,
+  });
 
   // Edit modal state
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -94,6 +101,9 @@ export function HomeScreen() {
         // Refresh the game list
         await loadGames();
 
+        // Sync to Supabase (debounced)
+        supabaseSync.syncAfterChange();
+
         // Close search
         setSearchQuery('');
         setSearchResults([]);
@@ -103,7 +113,7 @@ export function HomeScreen() {
         Alert.alert('Error', 'Failed to add game. Please try again.');
       }
     },
-    [loadGames]
+    [loadGames, supabaseSync]
   );
 
   const handleSearchFocus = useCallback(() => {
@@ -122,22 +132,24 @@ export function HomeScreen() {
     async (reorderedIds: string[]) => {
       try {
         await reorderGames(reorderedIds);
+        supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to reorder games');
       }
     },
-    [reorderGames]
+    [reorderGames, supabaseSync]
   );
 
   const handleSwipe = useCallback(
     async (gameId: string) => {
       try {
         await toggleCompleted(gameId);
+        supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [toggleCompleted]
+    [toggleCompleted, supabaseSync]
   );
 
   const handleInfo = useCallback(
@@ -160,26 +172,41 @@ export function HomeScreen() {
     async (gameId: string) => {
       try {
         await deleteGame(gameId);
+        supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to delete game');
       }
     },
-    [deleteGame]
+    [deleteGame, supabaseSync]
   );
 
   const handleToggleCompletedFromModal = useCallback(
     async (gameId: string) => {
       try {
         await toggleCompleted(gameId);
+        supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [toggleCompleted]
+    [toggleCompleted, supabaseSync]
   );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Sync indicator header */}
+      <View style={styles.header}>
+        <SyncIndicator
+          isAvailable={supabaseSync.isAvailable}
+          isSyncing={supabaseSync.isSyncing}
+          lastSyncTime={supabaseSync.lastSyncTime}
+          lastSyncSuccess={supabaseSync.lastSyncSuccess}
+          lastSyncMessage={supabaseSync.lastSyncMessage}
+          availabilityMessage={supabaseSync.availabilityMessage}
+          sync={supabaseSync.sync}
+        />
+      </View>
+
       {/* Game list */}
       <GameList
         sortedGames={sortedGames}
@@ -226,6 +253,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
 });
 
