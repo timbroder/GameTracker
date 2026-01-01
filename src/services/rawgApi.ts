@@ -226,7 +226,7 @@ export async function getGamesByPlatform(
       const response = await client.get<GamesByPlatformResponse>('/games', {
         params: {
           platforms: platformId,
-          ordering: '-metacritic',
+          ordering: '-rating',
           page: page,
           page_size: Math.min(pageSize, 40),
         },
