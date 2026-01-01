@@ -4,6 +4,11 @@
 
 import { RAWG_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SYNC_USER_ID_DEV, SYNC_USER_ID_PROD } from './secrets';
 
+/**
+ * App version - bump this when deploying OTA updates
+ */
+export const APP_VERSION = '1.0.0';
+
 let rawgApiKey: string | null = RAWG_API_KEY;
 
 /**

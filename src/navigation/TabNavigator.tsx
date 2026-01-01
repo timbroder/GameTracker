@@ -10,6 +10,7 @@ import { HomeScreen } from '../screens';
 import { DiscoveryScreen } from '../screens/DiscoveryScreen';
 import { SyncIndicator } from '../components';
 import { useSupabaseSync } from '../hooks';
+import { APP_VERSION } from '../config';
 import type { RootTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -42,6 +43,7 @@ function SharedHeader() {
 
   return (
     <View style={[styles.header, { paddingTop: insets.top }]}>
+      <Text style={styles.versionText}>v{APP_VERSION}</Text>
       <SyncIndicator
         isAvailable={supabaseSync.isAvailable}
         isSyncing={supabaseSync.isSyncing}
@@ -99,10 +101,16 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
     paddingVertical: 4,
     backgroundColor: '#000',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
   },
   tabBar: {
     backgroundColor: '#111',
