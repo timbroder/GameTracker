@@ -25,9 +25,9 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { Game } from '../types';
 import {
-  getGameColor,
   getGradientProps,
-  COMPLETED_OPACITY,
+  getPositionalGreen,
+  getPositionalGrey,
 } from '../utils/colors';
 import { useHaptics } from '../hooks/useHaptics';
 
@@ -57,6 +57,8 @@ function formatCompletedDate(isoDate: string): string {
 
 export interface GameRowProps {
   game: Game;
+  index: number;      // Position in the list (0-based)
+  totalCount: number; // Total items in this section
   onSwipe?: (gameId: string) => void;
   onInfo?: (gameId: string) => void;
   isDragging?: boolean;
@@ -123,6 +125,8 @@ function InfoButton({ onPress }: { onPress: () => void }) {
  */
 function GameRowComponent({
   game,
+  index,
+  totalCount,
   onSwipe,
   onInfo,
   isDragging = false,
@@ -131,9 +135,11 @@ function GameRowComponent({
   const translateX = useSharedValue(0);
   const isSwipeTriggered = useSharedValue(false);
 
-  const color = getGameColor(game.colorIndex, game.isCompleted);
-  const opacity = game.isCompleted ? COMPLETED_OPACITY : 1;
-  const gradientProps = getGradientProps(color, opacity);
+  // Position-based color: green gradient for "To Play", grey gradient for "Completed"
+  const color = game.isCompleted
+    ? getPositionalGrey(index, totalCount)
+    : getPositionalGreen(index, totalCount);
+  const gradientProps = getGradientProps(color);
 
   const handleSwipe = useCallback(() => {
     if (onSwipe) {
