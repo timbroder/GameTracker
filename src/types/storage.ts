@@ -4,6 +4,7 @@
 
 export const STORAGE_KEYS = {
   GAMES: '@gametracker:games',
+  SEEN_GAMES: '@gametracker:seenGames',
   LAST_SYNC: '@gametracker:lastSync',
   USER_PREFS: '@gametracker:prefs',
 } as const;

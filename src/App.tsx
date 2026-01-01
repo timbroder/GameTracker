@@ -6,8 +6,9 @@ import 'react-native-get-random-values'; // Must be first for uuid
 import React, { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { NavigationContainer } from '@react-navigation/native';
 import { HotUpdater } from '@hot-updater/react-native';
-import { HomeScreen } from './screens';
+import { TabNavigator } from './navigation';
 import { getRawgApiKey } from './config';
 import { setApiKey } from './services/rawgApi';
 
@@ -23,7 +24,9 @@ function App(): React.JSX.Element {
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="#000" />
-      <HomeScreen />
+      <NavigationContainer>
+        <TabNavigator />
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }

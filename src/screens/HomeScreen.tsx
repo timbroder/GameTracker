@@ -4,15 +4,14 @@
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, Keyboard } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { GameList, EditModal, SearchBar, SearchResults, SyncIndicator } from '../components';
+import { useFocusEffect } from '@react-navigation/native';
+import { GameList, EditModal, SearchBar, SearchResults } from '../components';
 import { useGames, useSupabaseSync } from '../hooks';
 import { searchGames } from '../services/rawgApi';
 import { addGame as addGameService, gameExists } from '../services/gameManager';
 import type { Game, GameSearchResult, Platform } from '../types';
 
 export function HomeScreen() {
-  const insets = useSafeAreaInsets();
   const {
     games,
     sortedGames,
@@ -30,6 +29,13 @@ export function HomeScreen() {
     syncOnForeground: true,
     onGamesUpdated: loadGames,
   });
+
+  // Reload games when screen comes into focus (e.g., after adding from Discovery)
+  useFocusEffect(
+    useCallback(() => {
+      loadGames();
+    }, [loadGames])
+  );
 
   // Edit modal state
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -193,20 +199,7 @@ export function HomeScreen() {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Sync indicator header */}
-      <View style={styles.header}>
-        <SyncIndicator
-          isAvailable={supabaseSync.isAvailable}
-          isSyncing={supabaseSync.isSyncing}
-          lastSyncTime={supabaseSync.lastSyncTime}
-          lastSyncSuccess={supabaseSync.lastSyncSuccess}
-          lastSyncMessage={supabaseSync.lastSyncMessage}
-          availabilityMessage={supabaseSync.availabilityMessage}
-          sync={supabaseSync.sync}
-        />
-      </View>
-
+    <View style={styles.container}>
       {/* Game list */}
       <GameList
         sortedGames={sortedGames}
@@ -253,12 +246,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
   },
 });
 

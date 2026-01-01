@@ -14,3 +14,13 @@ export type {
   SupabaseSyncActions,
   UseSupabaseSyncReturn,
 } from './useSupabaseSync';
+
+export { useSeenGames } from './useSeenGames';
+export type {
+  UseSeenGamesState,
+  UseSeenGamesActions,
+  UseSeenGamesReturn,
+} from './useSeenGames';
+
+export { useDiscovery } from './useDiscovery';
+export type { UseDiscoveryReturn } from './useDiscovery';
