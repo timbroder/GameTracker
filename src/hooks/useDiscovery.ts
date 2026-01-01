@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { getGamesByPlatform } from '../services/rawgApi';
-import { addGameAsCompleted, isGameInCollection } from '../services/discoveryService';
+import { addGameAsCompleted, addGameAsToPlay, isGameInCollection } from '../services/discoveryService';
 import { useSeenGames } from './useSeenGames';
 import { useHaptics } from './useHaptics';
 import type { LegacyPlatform, DiscoveryGame, DiscoveryState } from '../types';
@@ -35,6 +35,7 @@ export interface UseDiscoveryReturn {
   goBack: () => void;
   handleSwipeLeft: (game: DiscoveryGame) => void;
   handleSwipeRight: (game: DiscoveryGame) => void;
+  handleAddToPlay: (game: DiscoveryGame) => void;
   undo: () => void;
   loadMore: () => void;
 }
@@ -226,6 +227,43 @@ export function useDiscovery(): UseDiscoveryReturn {
   );
 
   /**
+   * Handle add to play (add to To Play list)
+   */
+  const handleAddToPlay = useCallback(
+    async (game: DiscoveryGame) => {
+      if (!selectedPlatform) return;
+
+      haptics.medium();
+
+      try {
+        // Add to collection as to-play
+        await addGameAsToPlay(game, selectedPlatform);
+
+        // Also mark as seen so it doesn't show again
+        await seenGames.markAsSeen(game.id, selectedPlatform.id);
+
+        // Save for undo
+        setLastAction({ type: 'right', game, platform: selectedPlatform });
+
+        // Remove from deck
+        setGames((prev) => prev.filter((g) => g.id !== game.id));
+
+        // Check if empty
+        if (games.length <= 1 && !hasMoreRef.current) {
+          setState('empty');
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message === 'Game already in collection') {
+          Alert.alert('Already Added', `${game.name} is already in your collection.`);
+        } else {
+          Alert.alert('Error', 'Failed to add game. Please try again.');
+        }
+      }
+    },
+    [selectedPlatform, seenGames, haptics, games.length]
+  );
+
+  /**
    * Undo last action
    */
   const undo = useCallback(async () => {
@@ -276,6 +314,7 @@ export function useDiscovery(): UseDiscoveryReturn {
     goBack,
     handleSwipeLeft,
     handleSwipeRight,
+    handleAddToPlay,
     undo,
     loadMore,
   };

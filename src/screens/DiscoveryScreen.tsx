@@ -18,6 +18,7 @@ export function DiscoveryScreen() {
     goBack,
     handleSwipeLeft,
     handleSwipeRight,
+    handleAddToPlay,
     undo,
     loadMore,
   } = useDiscovery();
@@ -126,7 +127,15 @@ export function DiscoveryScreen() {
           <Text style={styles.actionButtonText}>Skip</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionButton, styles.addButton]}
+          style={[styles.actionButton, styles.toPlayButton]}
+          onPress={() => games[0] && handleAddToPlay(games[0])}
+          disabled={games.length === 0}
+        >
+          <Text style={styles.actionButtonIcon}>+</Text>
+          <Text style={styles.actionButtonText}>Add</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.playedButton]}
           onPress={() => games[0] && handleSwipeRight(games[0])}
           disabled={games.length === 0}
         >
@@ -227,7 +236,7 @@ const styles = StyleSheet.create({
   buttonsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 40,
+    gap: 24,
     paddingBottom: 100,
   },
   actionButton: {
@@ -242,7 +251,11 @@ const styles = StyleSheet.create({
     borderColor: '#FF6B6B',
     backgroundColor: 'rgba(255, 107, 107, 0.1)',
   },
-  addButton: {
+  toPlayButton: {
+    borderColor: '#4D96FF',
+    backgroundColor: 'rgba(77, 150, 255, 0.1)',
+  },
+  playedButton: {
     borderColor: '#4ECB71',
     backgroundColor: 'rgba(78, 203, 113, 0.1)',
   },

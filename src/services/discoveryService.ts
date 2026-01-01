@@ -82,6 +82,51 @@ export async function addGameAsCompleted(
 }
 
 /**
+ * Add a game from discovery to "To Play" list (not completed)
+ * @param game - The game from discovery
+ * @param platform - The legacy platform
+ */
+export async function addGameAsToPlay(
+  game: DiscoveryGame,
+  platform: LegacyPlatform
+): Promise<Game> {
+  const games = await loadGames();
+
+  // Check if game already exists for this platform
+  const exists = games.some(
+    (g) => g.rawgId === game.id && g.platformId === platform.id
+  );
+
+  if (exists) {
+    throw new Error('Game already in collection');
+  }
+
+  // Find max sortOrder among non-completed games to add at bottom
+  const toPlayGames = games.filter((g) => !g.isCompleted);
+  const maxSortOrder = toPlayGames.length > 0
+    ? Math.max(...toPlayGames.map((g) => g.sortOrder))
+    : -1;
+
+  const newGame: Game = {
+    id: uuidv4(),
+    rawgId: game.id,
+    name: game.name,
+    platform: platform.name,
+    platformId: platform.id,
+    boxArtUrl: game.backgroundImage || '',
+    isCompleted: false,
+    sortOrder: maxSortOrder + 1,
+    dateAdded: new Date().toISOString(),
+    colorIndex: getNextColorIndex(games),
+  };
+
+  const updatedGames = [...games, newGame];
+  await saveGames(updatedGames);
+
+  return newGame;
+}
+
+/**
  * Check if a game exists in the collection
  */
 export async function isGameInCollection(
