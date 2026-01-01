@@ -11,7 +11,6 @@ import {
   Text,
   Keyboard,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface SearchBarProps {
   value: string;
@@ -28,7 +27,6 @@ export function SearchBar({
   onCancel,
   isActive,
 }: SearchBarProps) {
-  const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
@@ -43,7 +41,7 @@ export function SearchBar({
   }, [onCancel]);
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <View style={styles.container}>
       <View style={styles.inputContainer}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -73,12 +71,18 @@ export function SearchBar({
   );
 }
 
+const TAB_BAR_HEIGHT = 60;
+
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: TAB_BAR_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingTop: 12,
+    paddingVertical: 12,
     backgroundColor: '#111',
     borderTopWidth: 1,
     borderTopColor: '#333',
