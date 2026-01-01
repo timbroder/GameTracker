@@ -151,6 +151,9 @@ export async function checkSupabaseAvailability(): Promise<{
 }> {
   try {
     const config = getSupabaseConfig();
+    console.log('[Supabase Sync] Config URL:', config.url);
+    console.log('[Supabase Sync] Config key starts with:', config.anonKey?.substring(0, 20) + '...');
+
     if (!config.url || !config.anonKey || config.anonKey === 'YOUR_ANON_KEY_HERE') {
       return {
         available: false,
@@ -163,6 +166,7 @@ export async function checkSupabaseAvailability(): Promise<{
     const { error } = await client.from('games').select('id').limit(1);
 
     if (error) {
+      console.error('[Supabase Sync] Availability check error:', error);
       // Table doesn't exist yet is ok, other errors are not
       if (error.code === '42P01') {
         return {
@@ -178,6 +182,7 @@ export async function checkSupabaseAvailability(): Promise<{
 
     return { available: true, message: 'Connected' };
   } catch (error) {
+    console.error('[Supabase Sync] Availability exception:', error);
     return {
       available: false,
       message: error instanceof Error ? error.message : 'Connection failed',
@@ -199,6 +204,7 @@ async function uploadGames(games: Game[], userId: string): Promise<number> {
   });
 
   if (error) {
+    console.error('[Supabase Sync] Upload error:', error);
     throw new Error(`Failed to upload games: ${error.message}`);
   }
 
@@ -265,15 +271,18 @@ export async function syncGames(): Promise<SyncResult> {
   try {
     // Check availability first
     const { available, message } = await checkSupabaseAvailability();
+    console.log('[Supabase Sync] Availability:', available, message);
     if (!available) {
       return { success: false, message };
     }
 
     const userId = getUserId();
     const deviceId = await getDeviceId();
+    console.log('[Supabase Sync] User ID:', userId, 'Device ID:', deviceId);
 
     // Get local games
     const localGames = await loadGames();
+    console.log('[Supabase Sync] Local games count:', localGames.length);
     const localGameIds = new Set(localGames.map((g) => g.id));
     const localGamesMap = new Map(localGames.map((g) => [g.id, g]));
 
@@ -297,7 +306,9 @@ export async function syncGames(): Promise<SyncResult> {
     }
 
     // Upload all local games to cloud
+    console.log('[Supabase Sync] Uploading', mergedGames.length, 'games...');
     const uploaded = await uploadGames(mergedGames, userId);
+    console.log('[Supabase Sync] Uploaded:', uploaded);
 
     // Delete games from cloud that were deleted locally
     const deleted = await deleteRemovedGames(localGameIds, cloudGames, userId);
