@@ -101,24 +101,17 @@ export function useDiscovery(): UseDiscoveryReturn {
       try {
         setLoading(true);
 
-        console.log(`[Discovery] Loading page ${page} for ${platform.name}`);
         const response = await getGamesByPlatform(platform.id, page, PAGE_SIZE);
         totalGamesRef.current = response.count;
         hasMoreRef.current = response.next !== null;
         currentPageRef.current = page;
-        console.log(`[Discovery] Got ${response.results.length} results, hasMore: ${hasMoreRef.current}, total: ${response.count}`);
 
         const filteredGames = await filterGames(response.results, platform.id);
-        console.log(`[Discovery] After filtering: ${filteredGames.length} games`);
 
         if (page === 1) {
           setGames(filteredGames);
         } else {
-          setGames((prev) => {
-            const newGames = [...prev, ...filteredGames];
-            console.log(`[Discovery] Total games in deck: ${newGames.length}`);
-            return newGames;
-          });
+          setGames((prev) => [...prev, ...filteredGames]);
         }
 
         // If we filtered out everything and there's more, load next page
@@ -265,14 +258,11 @@ export function useDiscovery(): UseDiscoveryReturn {
    * Load more games
    */
   const loadMore = useCallback(() => {
-    console.log(`[Discovery] loadMore called - loading: ${loading}, hasMore: ${hasMoreRef.current}, platform: ${selectedPlatform?.name}`);
     if (loading || !hasMoreRef.current || !selectedPlatform) {
-      console.log('[Discovery] loadMore skipped');
       return;
     }
 
     const nextPage = currentPageRef.current + 1;
-    console.log(`[Discovery] Loading page ${nextPage}`);
     loadGames(selectedPlatform, nextPage);
   }, [loading, selectedPlatform, loadGames]);
 

@@ -108,9 +108,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   versionText: {
-    fontSize: 12,
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#999',
+    fontWeight: '600',
   },
   tabBar: {
     backgroundColor: '#111',
