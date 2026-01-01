@@ -95,10 +95,11 @@ function SwipeDeckComponent({
               style={[
                 styles.cardWrapper,
                 {
-                  // Stack cards with slight offset
+                  // Stack cards with offset, scale, and rotation for depth effect
                   transform: [
-                    { scale: 1 - index * 0.03 },
-                    { translateY: index * -8 },
+                    { scale: 1 - index * 0.05 },
+                    { translateY: index * 12 },
+                    { rotate: `${index * 2}deg` },
                   ],
                   zIndex: VISIBLE_CARDS - index,
                 },

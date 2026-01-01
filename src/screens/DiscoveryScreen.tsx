@@ -115,16 +115,24 @@ export function DiscoveryScreen() {
         />
       </View>
 
-      {/* Swipe hints */}
-      <View style={styles.hintsContainer}>
-        <View style={styles.hint}>
-          <Text style={styles.hintArrow}>←</Text>
-          <Text style={styles.hintText}>Skip</Text>
-        </View>
-        <View style={styles.hint}>
-          <Text style={styles.hintText}>Add</Text>
-          <Text style={styles.hintArrow}>→</Text>
-        </View>
+      {/* Action buttons */}
+      <View style={styles.buttonsContainer}>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.skipButton]}
+          onPress={() => games[0] && handleSwipeLeft(games[0])}
+          disabled={games.length === 0}
+        >
+          <Text style={styles.actionButtonIcon}>✕</Text>
+          <Text style={styles.actionButtonText}>Skip</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.addButton]}
+          onPress={() => games[0] && handleSwipeRight(games[0])}
+          disabled={games.length === 0}
+        >
+          <Text style={styles.actionButtonIcon}>✓</Text>
+          <Text style={styles.actionButtonText}>Add</Text>
+        </TouchableOpacity>
       </View>
 
       <UndoButton onPress={undo} visible={canUndo} />
@@ -216,25 +224,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  hintsContainer: {
+  buttonsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 40,
+    justifyContent: 'center',
+    gap: 40,
     paddingBottom: 100,
   },
-  hint: {
-    flexDirection: 'row',
+  actionButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
     alignItems: 'center',
-    opacity: 0.5,
+    borderWidth: 2,
   },
-  hintArrow: {
-    fontSize: 20,
-    color: '#fff',
-    marginHorizontal: 8,
+  skipButton: {
+    borderColor: '#FF6B6B',
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
   },
-  hintText: {
-    fontSize: 14,
+  addButton: {
+    borderColor: '#4ECB71',
+    backgroundColor: 'rgba(78, 203, 113, 0.1)',
+  },
+  actionButtonIcon: {
+    fontSize: 24,
+    fontWeight: '700',
     color: '#fff',
+  },
+  actionButtonText: {
+    fontSize: 11,
+    color: '#888',
+    marginTop: 2,
   },
 });
 
