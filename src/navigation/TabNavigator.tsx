@@ -31,9 +31,9 @@ function TabIcon({ name, focused }: { name: 'home' | 'discovery'; focused: boole
 }
 
 /**
- * Shared header with sync indicator
+ * Sync indicator overlay for tab bar area
  */
-function SharedHeader() {
+function SyncOverlay() {
   const insets = useSafeAreaInsets();
   const supabaseSync = useSupabaseSync({
     syncOnLaunch: true,
@@ -41,7 +41,7 @@ function SharedHeader() {
   });
 
   return (
-    <View style={[styles.header, { paddingTop: insets.top }]}>
+    <View style={[styles.syncOverlay, { bottom: 60 + insets.bottom }]} pointerEvents="box-none">
       <SyncIndicator
         isAvailable={supabaseSync.isAvailable}
         isSyncing={supabaseSync.isSyncing}
@@ -61,7 +61,6 @@ function SharedHeader() {
 export function TabNavigator() {
   return (
     <View style={styles.container}>
-      <SharedHeader />
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -88,6 +87,7 @@ export function TabNavigator() {
           }}
         />
       </Tab.Navigator>
+      <SyncOverlay />
     </View>
   );
 }
@@ -97,12 +97,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#000',
+  syncOverlay: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 100,
   },
   tabBar: {
     backgroundColor: '#111',
