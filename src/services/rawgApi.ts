@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import type { GameSearchResult, GameDetails, Platform } from '../types/game';
+import type { GameSearchResult, GameDetails, Platform, GamesByPlatformResponse } from '../types';
 
 const BASE_URL = 'https://api.rawg.io/api';
 const DEFAULT_TIMEOUT = 10000;
@@ -206,4 +206,34 @@ export async function getPlatforms(pageSize: number = 50): Promise<Platform[]> {
 export async function getGamePlatforms(gameId: number): Promise<Platform[]> {
   const details = await getGameDetails(gameId);
   return details.platforms.map((p) => p.platform);
+}
+
+/**
+ * Get games for a specific platform, sorted alphabetically
+ * Used for legacy game discovery feature
+ * @param platformId - RAWG platform ID
+ * @param page - Page number (1-indexed)
+ * @param pageSize - Number of results per page (default 40, max 40)
+ */
+export async function getGamesByPlatform(
+  platformId: number,
+  page: number = 1,
+  pageSize: number = 40,
+): Promise<GamesByPlatformResponse> {
+  try {
+    return await withRetry(async () => {
+      const client = createClient();
+      const response = await client.get<GamesByPlatformResponse>('/games', {
+        params: {
+          platforms: platformId,
+          ordering: '-added,-rating',
+          page: page,
+          page_size: Math.min(pageSize, 40),
+        },
+      });
+      return response.data;
+    });
+  } catch (error) {
+    handleApiError(error);
+  }
 }

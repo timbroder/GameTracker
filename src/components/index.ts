@@ -19,3 +19,15 @@ export type { SearchResultsProps } from './SearchResults';
 
 export { SyncIndicator } from './SyncIndicator';
 export type { SyncIndicatorProps } from './SyncIndicator';
+
+export { PlatformSelector } from './PlatformSelector';
+export type { PlatformSelectorProps } from './PlatformSelector';
+
+export { SwipeCard } from './SwipeCard';
+export type { SwipeCardProps } from './SwipeCard';
+
+export { SwipeDeck } from './SwipeDeck';
+export type { SwipeDeckProps } from './SwipeDeck';
+
+export { UndoButton } from './UndoButton';
+export type { UndoButtonProps } from './UndoButton';
