@@ -131,7 +131,7 @@ export function DiscoveryScreen() {
           disabled={games.length === 0}
         >
           <Text style={styles.actionButtonIcon}>✓</Text>
-          <Text style={styles.actionButtonText}>Add</Text>
+          <Text style={styles.actionButtonText}>Played</Text>
         </TouchableOpacity>
       </View>
 
