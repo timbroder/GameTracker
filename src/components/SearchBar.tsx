@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   Text,
   Keyboard,
+  Platform,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +23,8 @@ export interface SearchBarProps {
   isActive: boolean;
 }
 
+const TAB_BAR_HEIGHT = 0; // Position at bottom of content area (above tab bar)
+
 export function SearchBar({
   value,
   onChangeText,
@@ -30,6 +34,10 @@ export function SearchBar({
 }: SearchBarProps) {
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
+
+  // Position directly above the tab bar (tab bar handles its own safe area)
+  const baseBottom = TAB_BAR_HEIGHT;
 
   useEffect(() => {
     if (isActive && inputRef.current) {
@@ -37,13 +45,50 @@ export function SearchBar({
     }
   }, [isActive]);
 
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        Animated.timing(keyboardOffset, {
+          toValue: event.endCoordinates.height - baseBottom,
+          duration: event.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (event) => {
+        Animated.timing(keyboardOffset, {
+          toValue: 0,
+          duration: event.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, [keyboardOffset, baseBottom]);
+
   const handleCancel = useCallback(() => {
     Keyboard.dismiss();
     onCancel();
   }, [onCancel]);
 
   return (
-    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          bottom: baseBottom,
+          transform: [{ translateY: Animated.multiply(keyboardOffset, -1) }],
+        },
+      ]}
+    >
       <View style={styles.inputContainer}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -69,16 +114,19 @@ export function SearchBar({
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingTop: 12,
+    paddingVertical: 8,
     backgroundColor: '#111',
     borderTopWidth: 1,
     borderTopColor: '#333',

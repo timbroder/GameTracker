@@ -22,6 +22,9 @@ export const LEGACY_PLATFORMS: LegacyPlatform[] = [
   { id: 79, name: 'SNES', shortName: 'SNES', color: '#4F43AE' },
   { id: 83, name: 'Nintendo 64', shortName: 'N64', color: '#009E60' },
   { id: 27, name: 'PlayStation', shortName: 'PS1', color: '#003087' },
+  { id: 80, name: 'Xbox', shortName: 'Xbox', color: '#107C10' },
+  { id: 14, name: 'Xbox 360', shortName: '360', color: '#9BC848' },
+  { id: 7, name: 'Nintendo Switch', shortName: 'Switch', color: '#E60012' },
 ];
 
 /**
