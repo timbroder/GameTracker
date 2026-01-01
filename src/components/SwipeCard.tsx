@@ -182,12 +182,13 @@ function SwipeCardComponent({
 
 const styles = StyleSheet.create({
   card: {
-    position: 'absolute',
     width: SCREEN_WIDTH - 40,
     height: (SCREEN_WIDTH - 40) * 1.3,
     borderRadius: 20,
     overflow: 'hidden',
     backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,

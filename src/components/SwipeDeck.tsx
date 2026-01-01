@@ -131,7 +131,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardWrapper: {
-    position: 'absolute',
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyContainer: {
     flex: 1,
