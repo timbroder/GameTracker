@@ -4,7 +4,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import type { Game } from '../types/game';
-import { saveGames, loadGames } from './storage';
+import { saveGames, loadGames, addPendingDeletion } from './storage';
 
 const NUM_COLORS = 7; // Number of Clear-style colors (0-6)
 
@@ -109,6 +109,8 @@ export async function deleteGame(id: string): Promise<void> {
     throw new Error(`Game with id ${id} not found`);
   }
 
+  // Track the deletion so sync won't restore this game from cloud
+  await addPendingDeletion(id);
   await saveGames(filteredGames);
 }
 
