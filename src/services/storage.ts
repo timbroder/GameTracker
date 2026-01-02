@@ -108,3 +108,58 @@ export async function setLastSync(timestamp: string): Promise<void> {
     throw new Error('Failed to set last sync');
   }
 }
+
+/**
+ * Add a game ID to the pending deletions list.
+ * These IDs will be excluded from "new from cloud" during sync
+ * to prevent deleted games from being restored.
+ */
+export async function addPendingDeletion(gameId: string): Promise<void> {
+  try {
+    const pending = await getPendingDeletions();
+    if (!pending.includes(gameId)) {
+      pending.push(gameId);
+      await AsyncStorage.setItem(
+        STORAGE_KEYS.PENDING_DELETIONS,
+        JSON.stringify(pending),
+      );
+    }
+  } catch (error) {
+    console.error('Error adding pending deletion:', error);
+    // Don't throw - this is a best-effort operation
+  }
+}
+
+/**
+ * Get all pending deletion IDs
+ */
+export async function getPendingDeletions(): Promise<string[]> {
+  try {
+    const jsonValue = await AsyncStorage.getItem(STORAGE_KEYS.PENDING_DELETIONS);
+    if (jsonValue === null) {
+      return [];
+    }
+    return JSON.parse(jsonValue) as string[];
+  } catch (error) {
+    console.error('Error getting pending deletions:', error);
+    return [];
+  }
+}
+
+/**
+ * Clear specific IDs from the pending deletions list
+ * (called after successful cloud deletion)
+ */
+export async function clearPendingDeletions(gameIds: string[]): Promise<void> {
+  try {
+    const pending = await getPendingDeletions();
+    const remaining = pending.filter((id) => !gameIds.includes(id));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.PENDING_DELETIONS,
+      JSON.stringify(remaining),
+    );
+  } catch (error) {
+    console.error('Error clearing pending deletions:', error);
+    // Don't throw - this is a best-effort operation
+  }
+}

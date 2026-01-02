@@ -10,7 +10,12 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 import { getSupabaseConfig, getSyncUserId } from '../config';
-import { loadGames, saveGames } from './storage';
+import {
+  loadGames,
+  saveGames,
+  getPendingDeletions,
+  clearPendingDeletions,
+} from './storage';
 import type { Game } from '../types';
 
 const DEVICE_ID_KEY = '@gametracker:device_id';
@@ -232,15 +237,16 @@ async function downloadGames(userId: string): Promise<Game[]> {
 
 /**
  * Delete games from Supabase that no longer exist locally
+ * Returns the IDs of deleted games so we can clear them from pending deletions
  */
 async function deleteRemovedGames(
   localGameIds: Set<string>,
   cloudGames: Game[],
   userId: string
-): Promise<number> {
+): Promise<string[]> {
   const gamesToDelete = cloudGames.filter((g) => !localGameIds.has(g.id));
 
-  if (gamesToDelete.length === 0) return 0;
+  if (gamesToDelete.length === 0) return [];
 
   const client = getSupabaseClient();
   const idsToDelete = gamesToDelete.map((g) => g.id);
@@ -255,7 +261,7 @@ async function deleteRemovedGames(
     throw new Error(`Failed to delete games: ${error.message}`);
   }
 
-  return gamesToDelete.length;
+  return idsToDelete;
 }
 
 /**
@@ -280,18 +286,23 @@ export async function syncGames(): Promise<SyncResult> {
     const deviceId = await getDeviceId();
     console.log('[Supabase Sync] User ID:', userId, 'Device ID:', deviceId);
 
-    // Get local games
+    // Get local games and pending deletions
     const localGames = await loadGames();
+    const pendingDeletions = await getPendingDeletions();
+    const pendingDeletionIds = new Set(pendingDeletions);
     console.log('[Supabase Sync] Local games count:', localGames.length);
+    console.log('[Supabase Sync] Pending deletions:', pendingDeletions.length);
     const localGameIds = new Set(localGames.map((g) => g.id));
-    const localGamesMap = new Map(localGames.map((g) => [g.id, g]));
 
     // Download cloud games
     const cloudGames = await downloadGames(userId);
-    const cloudGameIds = new Set(cloudGames.map((g) => g.id));
 
     // Find games only in cloud (need to add locally)
-    const newFromCloud = cloudGames.filter((g) => !localGameIds.has(g.id));
+    // IMPORTANT: Exclude games that are pending deletion locally to prevent
+    // deleted games from being restored from cloud
+    const newFromCloud = cloudGames.filter(
+      (g) => !localGameIds.has(g.id) && !pendingDeletionIds.has(g.id),
+    );
 
     // Merge: add cloud-only games to local
     let mergedGames = [...localGames];
@@ -311,7 +322,13 @@ export async function syncGames(): Promise<SyncResult> {
     console.log('[Supabase Sync] Uploaded:', uploaded);
 
     // Delete games from cloud that were deleted locally
-    const deleted = await deleteRemovedGames(localGameIds, cloudGames, userId);
+    const deletedIds = await deleteRemovedGames(localGameIds, cloudGames, userId);
+
+    // Clear pending deletions that were successfully deleted from cloud
+    if (deletedIds.length > 0) {
+      await clearPendingDeletions(deletedIds);
+      console.log('[Supabase Sync] Cleared pending deletions:', deletedIds.length);
+    }
 
     // Update sync metadata
     const client = getSupabaseClient();
@@ -333,7 +350,7 @@ export async function syncGames(): Promise<SyncResult> {
         : 'Games synced',
       gamesUploaded: uploaded,
       gamesDownloaded: newFromCloud.length,
-      gamesDeleted: deleted,
+      gamesDeleted: deletedIds.length,
     };
   } catch (error) {
     console.error('Sync error:', error);

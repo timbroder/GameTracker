@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   SEEN_GAMES: '@gametracker:seenGames',
   LAST_SYNC: '@gametracker:lastSync',
   USER_PREFS: '@gametracker:prefs',
+  PENDING_DELETIONS: '@gametracker:pendingDeletions',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
