@@ -86,11 +86,11 @@ describe('Color utilities', () => {
       expect(props.colors[1]).toBe(color.secondary);
     });
 
-    it('should return start and end points', () => {
+    it('should return start and end points for vertical gradient', () => {
       const props = getGradientProps(CLEAR_COLORS[0]);
 
       expect(props.start).toEqual({ x: 0, y: 0 });
-      expect(props.end).toEqual({ x: 1, y: 0.25 });
+      expect(props.end).toEqual({ x: 0, y: 1 }); // Vertical gradient for row banding
     });
 
     it('should apply opacity when less than 1', () => {
