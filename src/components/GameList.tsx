@@ -124,12 +124,16 @@ export function GameList({
     [onReorder]
   );
 
+  const unplayedCount = unplayed.length;
   const renderUnplayedItem = useCallback(
-    ({ item, drag, isActive }: RenderItemParams<Game>) => {
+    ({ item, getIndex, drag, isActive }: RenderItemParams<Game>) => {
+      const index = getIndex() ?? 0;
       return (
         <Pressable onLongPress={drag} delayLongPress={200}>
           <GameRow
             game={item}
+            index={index}
+            totalCount={unplayedCount}
             onSwipe={onSwipe}
             onInfo={onInfo}
             isDragging={isActive}
@@ -137,28 +141,31 @@ export function GameList({
         </Pressable>
       );
     },
-    [onSwipe, onInfo]
+    [onSwipe, onInfo, unplayedCount]
   );
 
   const keyExtractor = useCallback((item: Game) => item.id, []);
 
   // Footer component with completed games
+  const completedCount = completed.length;
   const ListFooter = useMemo(() => {
-    if (completed.length === 0) return null;
+    if (completedCount === 0) return null;
     return (
       <View style={styles.footerContainer}>
-        <SectionHeader title="Completed" count={completed.length} />
-        {completed.map((game) => (
+        <SectionHeader title="Completed" count={completedCount} />
+        {completed.map((game, index) => (
           <GameRow
             key={game.id}
             game={game}
+            index={index}
+            totalCount={completedCount}
             onSwipe={onSwipe}
             onInfo={onInfo}
           />
         ))}
       </View>
     );
-  }, [completed, onSwipe, onInfo]);
+  }, [completed, completedCount, onSwipe, onInfo]);
 
   // Loading state - show skeleton while loading initial data
   if (loading && unplayed.length === 0 && completed.length === 0) {

@@ -34,10 +34,7 @@ export function SearchBar({
 }: SearchBarProps) {
   const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
-  const keyboardOffset = useRef(new Animated.Value(0)).current;
-
-  // Position directly above the tab bar (tab bar handles its own safe area)
-  const baseBottom = TAB_BAR_HEIGHT;
+  const bottomPosition = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isActive && inputRef.current) {
@@ -49,8 +46,11 @@ export function SearchBar({
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (event) => {
-        Animated.timing(keyboardOffset, {
-          toValue: event.endCoordinates.height - baseBottom,
+        // Position search bar directly above keyboard
+        // Subtract safe area since keyboard height is from screen bottom
+        const keyboardTop = event.endCoordinates.height - insets.bottom;
+        Animated.timing(bottomPosition, {
+          toValue: keyboardTop,
           duration: event.duration || 250,
           useNativeDriver: false,
         }).start();
@@ -60,7 +60,7 @@ export function SearchBar({
     const keyboardWillHide = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
       (event) => {
-        Animated.timing(keyboardOffset, {
+        Animated.timing(bottomPosition, {
           toValue: 0,
           duration: event.duration || 250,
           useNativeDriver: false,
@@ -72,7 +72,7 @@ export function SearchBar({
       keyboardWillShow.remove();
       keyboardWillHide.remove();
     };
-  }, [keyboardOffset, baseBottom]);
+  }, [bottomPosition, insets.bottom]);
 
   const handleCancel = useCallback(() => {
     Keyboard.dismiss();
@@ -84,8 +84,7 @@ export function SearchBar({
       style={[
         styles.container,
         {
-          bottom: baseBottom,
-          transform: [{ translateY: Animated.multiply(keyboardOffset, -1) }],
+          bottom: bottomPosition,
         },
       ]}
     >
