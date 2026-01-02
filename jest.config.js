@@ -13,6 +13,7 @@ module.exports = {
     '\\.(jpg|jpeg|png|gif|svg)$': '<rootDir>/__mocks__/fileMock.js',
     '^@hot-updater/react-native$': '<rootDir>/__mocks__/@hot-updater/react-native.js',
     '^./secrets$': '<rootDir>/src/config/__mocks__/secrets.ts',
+    '^react-native-share$': '<rootDir>/__mocks__/react-native-share.js',
   },
   testPathIgnorePatterns: [
     '/node_modules/',

@@ -4,3 +4,4 @@
 
 export { HomeScreen } from './HomeScreen';
 export { DiscoveryScreen } from './DiscoveryScreen';
+export { SettingsScreen } from './SettingsScreen';

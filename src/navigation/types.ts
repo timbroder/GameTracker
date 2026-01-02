@@ -10,6 +10,7 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 export type RootTabParamList = {
   Home: undefined;
   Discovery: undefined;
+  Settings: undefined;
 };
 
 /**
@@ -17,3 +18,4 @@ export type RootTabParamList = {
  */
 export type HomeScreenProps = BottomTabScreenProps<RootTabParamList, 'Home'>;
 export type DiscoveryScreenProps = BottomTabScreenProps<RootTabParamList, 'Discovery'>;
+export type SettingsScreenProps = BottomTabScreenProps<RootTabParamList, 'Settings'>;
