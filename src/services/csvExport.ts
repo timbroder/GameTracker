@@ -5,6 +5,7 @@
  */
 
 import Share from 'react-native-share';
+import RNFS from 'react-native-fs';
 import { loadGames } from './storage';
 import type { Game } from '../types';
 
@@ -72,36 +73,6 @@ export function generateCSV(games: Game[]): string {
 }
 
 /**
- * Convert string to base64
- */
-function toBase64(str: string): string {
-  // Using a simple approach that works in React Native
-  const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-
-  // Convert to UTF-8 bytes
-  const utf8 = unescape(encodeURIComponent(str));
-
-  for (let i = 0; i < utf8.length; i += 3) {
-    const chr1 = utf8.charCodeAt(i);
-    const chr2 = i + 1 < utf8.length ? utf8.charCodeAt(i + 1) : NaN;
-    const chr3 = i + 2 < utf8.length ? utf8.charCodeAt(i + 2) : NaN;
-
-    const enc1 = chr1 >> 2;
-    const enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
-    const enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
-    const enc4 = chr3 & 63;
-
-    output += chars.charAt(enc1) + chars.charAt(enc2);
-    output += isNaN(chr2) ? '=' : chars.charAt(enc3);
-    output += isNaN(chr3) ? '=' : chars.charAt(enc4);
-  }
-
-  return output;
-}
-
-/**
  * Generate filename with current date
  */
 function getFileName(): string {
@@ -124,16 +95,25 @@ export async function exportAndShareCSV(): Promise<void> {
   // Generate CSV content
   const csvContent = generateCSV(games);
 
-  // Convert to base64 for sharing
-  const base64Content = toBase64(csvContent);
+  // Write to temp file
   const fileName = getFileName();
+  const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
-  // Share the file using base64 data URL
-  await Share.open({
-    url: `data:text/csv;base64,${base64Content}`,
-    filename: fileName,
-    type: 'text/csv',
-    title: 'Export Games',
-    subject: 'GameTracker Export',
-  });
+  await RNFS.writeFile(filePath, csvContent, 'utf8');
+
+  try {
+    // Share the file
+    await Share.open({
+      url: `file://${filePath}`,
+      type: 'text/csv',
+      filename: fileName,
+    });
+  } finally {
+    // Clean up temp file after sharing (whether successful or cancelled)
+    try {
+      await RNFS.unlink(filePath);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
 }

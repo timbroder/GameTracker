@@ -14,6 +14,7 @@ module.exports = {
     '^@hot-updater/react-native$': '<rootDir>/__mocks__/@hot-updater/react-native.js',
     '^./secrets$': '<rootDir>/src/config/__mocks__/secrets.ts',
     '^react-native-share$': '<rootDir>/__mocks__/react-native-share.js',
+    '^react-native-fs$': '<rootDir>/__mocks__/react-native-fs.js',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
