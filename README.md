@@ -125,6 +125,44 @@ GameTracker/
 | `npm run test:watch` | Run tests in watch mode |
 | `npm run test:coverage` | Run tests with coverage |
 | `npm run lint` | Run ESLint |
+| `npx tsc --noEmit` | Type check without emitting |
+
+## OTA Updates (HotUpdater)
+
+The app uses [HotUpdater](https://github.com/nicepkg/hot-updater) for over-the-air updates in Release builds.
+
+### Deploying an OTA Update
+1. Bump `APP_VERSION` in `src/config/index.ts`
+2. Deploy:
+   ```bash
+   npx hot-updater deploy -p ios -t 1.x.x
+   ```
+3. Test: Close app → Open → Close → Open (OTA applies on second launch)
+
+**Note**: OTA only works in Release builds, not Debug/Metro builds.
+
+### Console for Managing Updates
+```bash
+npx hot-updater console
+```
+
+## Features
+
+### Clear-Style Color System
+The app uses position-based coloring inspired by the Clear app:
+- **To Play section**: Green gradient (dark at top → light at bottom)
+- **Completed section**: Grey gradient (dark at top → light at bottom)
+- Each row has an inner vertical gradient for a "banded" effect
+
+### Game Discovery
+Tinder-style card swiping for exploring legacy platforms:
+- Swipe LEFT: Dismiss (mark as seen)
+- Swipe RIGHT: Add to collection as completed
+- "Add" button: Add to "To Play" list
+- Platforms: NES, Game Boy, SNES, N64, PS1, Xbox, Xbox 360, Nintendo Switch
+
+### Supabase Sync
+Games sync to Supabase for cloud backup across devices. Seen games (discovery dismissals) also sync.
 
 ## Troubleshooting
 
