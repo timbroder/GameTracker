@@ -12,6 +12,7 @@ import {
   addSeenGame,
   removeSeenGame,
   getSeenGameIds,
+  getSeenGameNames,
   syncSeenGames,
   uploadSeenGame,
   deleteSeenGameFromCloud,
@@ -21,15 +22,17 @@ import type { SeenGame } from '../types';
 export interface UseSeenGamesState {
   seenGames: SeenGame[];
   seenGameIds: Map<number, Set<number>>; // platformId -> Set of rawgIds
+  seenGameNamesSet: Set<string>; // lowercase game names for cross-platform filtering
   loading: boolean;
   syncing: boolean;
 }
 
 export interface UseSeenGamesActions {
-  markAsSeen: (rawgId: number, platformId: number) => Promise<SeenGame>;
+  markAsSeen: (rawgId: number, platformId: number, name?: string) => Promise<SeenGame>;
   undoSeen: (rawgId: number, platformId: number) => Promise<void>;
   isGameSeen: (rawgId: number, platformId: number) => boolean;
   getSeenIdsForPlatform: (platformId: number) => Set<number>;
+  getSeenNames: () => Set<string>;
   sync: () => Promise<void>;
 }
 
@@ -38,6 +41,7 @@ export type UseSeenGamesReturn = UseSeenGamesState & UseSeenGamesActions;
 export function useSeenGames(): UseSeenGamesReturn {
   const [seenGames, setSeenGames] = useState<SeenGame[]>([]);
   const [seenGameIds, setSeenGameIds] = useState<Map<number, Set<number>>>(new Map());
+  const [seenGameNamesSet, setSeenGameNamesSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const initializedRef = useRef(false);
@@ -54,6 +58,14 @@ export function useSeenGames(): UseSeenGamesReturn {
     return map;
   }, []);
 
+  // Build the names set from seen games
+  const buildNamesSet = useCallback((games: SeenGame[]) => {
+    const names = games
+      .filter((g) => g.name)
+      .map((g) => g.name!.toLowerCase());
+    return new Set(names);
+  }, []);
+
   // Load seen games on mount
   useEffect(() => {
     if (initializedRef.current) return;
@@ -65,6 +77,7 @@ export function useSeenGames(): UseSeenGamesReturn {
         const games = await loadSeenGames();
         setSeenGames(games);
         setSeenGameIds(buildLookupMap(games));
+        setSeenGameNamesSet(buildNamesSet(games));
 
         // Sync with Supabase in background
         syncSeenGames().catch(console.error);
@@ -76,12 +89,12 @@ export function useSeenGames(): UseSeenGamesReturn {
     }
 
     load();
-  }, [buildLookupMap]);
+  }, [buildLookupMap, buildNamesSet]);
 
   // Mark a game as seen (dismissed)
   const markAsSeen = useCallback(
-    async (rawgId: number, platformId: number): Promise<SeenGame> => {
-      const newSeenGame = await addSeenGame(rawgId, platformId);
+    async (rawgId: number, platformId: number, name?: string): Promise<SeenGame> => {
+      const newSeenGame = await addSeenGame(rawgId, platformId, name);
 
       // Update state
       setSeenGames((prev) => {
@@ -100,6 +113,15 @@ export function useSeenGames(): UseSeenGamesReturn {
         newMap.get(platformId)!.add(rawgId);
         return newMap;
       });
+
+      // Update names set if name was provided
+      if (name) {
+        setSeenGameNamesSet((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(name.toLowerCase());
+          return newSet;
+        });
+      }
 
       // Upload to cloud in background
       uploadSeenGame(newSeenGame).catch(console.error);
@@ -148,6 +170,11 @@ export function useSeenGames(): UseSeenGamesReturn {
     [seenGameIds]
   );
 
+  // Get all seen game names (lowercase)
+  const getSeenNames = useCallback((): Set<string> => {
+    return seenGameNamesSet;
+  }, [seenGameNamesSet]);
+
   // Manual sync
   const sync = useCallback(async () => {
     setSyncing(true);
@@ -156,22 +183,25 @@ export function useSeenGames(): UseSeenGamesReturn {
       const games = await loadSeenGames();
       setSeenGames(games);
       setSeenGameIds(buildLookupMap(games));
+      setSeenGameNamesSet(buildNamesSet(games));
     } catch (error) {
       console.error('[useSeenGames] Sync error:', error);
     } finally {
       setSyncing(false);
     }
-  }, [buildLookupMap]);
+  }, [buildLookupMap, buildNamesSet]);
 
   return {
     seenGames,
     seenGameIds,
+    seenGameNamesSet,
     loading,
     syncing,
     markAsSeen,
     undoSeen,
     isGameSeen,
     getSeenIdsForPlatform,
+    getSeenNames,
     sync,
   };
 }

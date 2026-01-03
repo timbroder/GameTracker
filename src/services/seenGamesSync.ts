@@ -95,7 +95,7 @@ export async function saveSeenGames(seenGames: SeenGame[]): Promise<void> {
 /**
  * Add a seen game (locally)
  */
-export async function addSeenGame(rawgId: number, platformId: number): Promise<SeenGame> {
+export async function addSeenGame(rawgId: number, platformId: number, name?: string): Promise<SeenGame> {
   const seenGames = await loadSeenGames();
 
   // Check if already exists
@@ -103,6 +103,11 @@ export async function addSeenGame(rawgId: number, platformId: number): Promise<S
     (g) => g.rawgId === rawgId && g.platformId === platformId
   );
   if (existing) {
+    // Update name if it wasn't set before
+    if (name && !existing.name) {
+      existing.name = name;
+      await saveSeenGames(seenGames);
+    }
     return existing;
   }
 
@@ -111,6 +116,7 @@ export async function addSeenGame(rawgId: number, platformId: number): Promise<S
     rawgId,
     platformId,
     dismissedAt: new Date().toISOString(),
+    name,
   };
 
   seenGames.push(newSeenGame);
@@ -138,6 +144,17 @@ export async function getSeenGameIds(platformId: number): Promise<Set<number>> {
     .filter((g) => g.platformId === platformId)
     .map((g) => g.rawgId);
   return new Set(ids);
+}
+
+/**
+ * Get all seen game names (lowercase) for cross-platform duplicate detection
+ */
+export async function getSeenGameNames(): Promise<Set<string>> {
+  const seenGames = await loadSeenGames();
+  const names = seenGames
+    .filter((g) => g.name)
+    .map((g) => g.name!.toLowerCase());
+  return new Set(names);
 }
 
 /**

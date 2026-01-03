@@ -136,3 +136,12 @@ export async function isGameInCollection(
   const games = await loadGames();
   return games.some((g) => g.rawgId === rawgId && g.platformId === platformId);
 }
+
+/**
+ * Get all game names in the collection (lowercase) for duplicate detection
+ */
+export async function getCollectionGameNames(): Promise<Set<string>> {
+  const games = await loadGames();
+  const names = games.map((g) => g.name.toLowerCase());
+  return new Set(names);
+}
