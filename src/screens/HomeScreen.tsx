@@ -110,11 +110,8 @@ export function HomeScreen() {
         // Sync to Supabase (debounced)
         supabaseSync.syncAfterChange();
 
-        // Close search
-        setSearchQuery('');
-        setSearchResults([]);
-        setIsSearchActive(false);
-        Keyboard.dismiss();
+        // Keep search open so user can add more games
+        // Search closes when user taps Cancel
       } catch (err) {
         Alert.alert('Error', 'Failed to add game. Please try again.');
       }

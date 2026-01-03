@@ -6,7 +6,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HomeScreen } from '../screens';
+import { HomeScreen, SettingsScreen } from '../screens';
 import { DiscoveryScreen } from '../screens/DiscoveryScreen';
 import { SyncIndicator } from '../components';
 import { useSupabaseSync } from '../hooks';
@@ -18,10 +18,17 @@ const Tab = createBottomTabNavigator<RootTabParamList>();
 /**
  * Tab bar icon component
  */
-function TabIcon({ name, focused }: { name: 'home' | 'discovery'; focused: boolean }) {
+function TabIcon({
+  name,
+  focused,
+}: {
+  name: 'home' | 'discovery' | 'settings';
+  focused: boolean;
+}) {
   const icons = {
-    home: focused ? '🎮' : '🎮',
-    discovery: focused ? '🔍' : '🔍',
+    home: '🎮',
+    discovery: '🔍',
+    settings: '⚙️',
   };
 
   return (
@@ -87,6 +94,14 @@ export function TabNavigator() {
           options={{
             tabBarLabel: 'Discovery',
             tabBarIcon: ({ focused }) => <TabIcon name="discovery" focused={focused} />,
+          }}
+        />
+        <Tab.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            tabBarLabel: 'Settings',
+            tabBarIcon: ({ focused }) => <TabIcon name="settings" focused={focused} />,
           }}
         />
       </Tab.Navigator>
