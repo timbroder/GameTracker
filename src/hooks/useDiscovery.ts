@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { getGamesByPlatform } from '../services/rawgApi';
-import { addGameAsCompleted, addGameAsToPlay, isGameInCollection } from '../services/discoveryService';
+import { addGameAsCompleted, addGameAsToPlay, isGameInCollection, getCollectionGameNames } from '../services/discoveryService';
 import { useSeenGames } from './useSeenGames';
 import { useHaptics } from './useHaptics';
 import type { LegacyPlatform, DiscoveryGame, DiscoveryState } from '../types';
@@ -57,6 +57,7 @@ export function useDiscovery(): UseDiscoveryReturn {
 
   /**
    * Filter out games that have been seen or are already in collection
+   * Also filters by name match across platforms (cross-platform duplicate detection)
    */
   const filterGames = useCallback(
     async (
@@ -70,13 +71,23 @@ export function useDiscovery(): UseDiscoveryReturn {
       platformId: number
     ): Promise<DiscoveryGame[]> => {
       const seenIds = seenGames.getSeenIdsForPlatform(platformId);
+      const seenNames = seenGames.getSeenNames();
+      const collectionNames = await getCollectionGameNames();
 
       const filtered: DiscoveryGame[] = [];
       for (const game of rawGames) {
-        // Skip if seen
+        const gameName = game.name.toLowerCase();
+
+        // Skip if seen on this platform
         if (seenIds.has(game.id)) continue;
 
-        // Skip if already in collection
+        // Skip if name matches a seen game (cross-platform)
+        if (seenNames.has(gameName)) continue;
+
+        // Skip if name matches a game in collection (cross-platform)
+        if (collectionNames.has(gameName)) continue;
+
+        // Skip if already in collection (exact rawgId + platformId match)
         const inCollection = await isGameInCollection(game.id, platformId);
         if (inCollection) continue;
 
@@ -172,8 +183,8 @@ export function useDiscovery(): UseDiscoveryReturn {
 
       haptics.light();
 
-      // Mark as seen
-      await seenGames.markAsSeen(game.id, selectedPlatform.id);
+      // Mark as seen (with name for cross-platform filtering)
+      await seenGames.markAsSeen(game.id, selectedPlatform.id, game.name);
 
       // Save for undo
       setLastAction({ type: 'left', game, platform: selectedPlatform });
@@ -202,8 +213,8 @@ export function useDiscovery(): UseDiscoveryReturn {
         // Add to collection as completed
         await addGameAsCompleted(game, selectedPlatform);
 
-        // Also mark as seen so it doesn't show again
-        await seenGames.markAsSeen(game.id, selectedPlatform.id);
+        // Also mark as seen so it doesn't show again (with name for cross-platform filtering)
+        await seenGames.markAsSeen(game.id, selectedPlatform.id, game.name);
 
         // Save for undo
         setLastAction({ type: 'right', game, platform: selectedPlatform });
@@ -239,8 +250,8 @@ export function useDiscovery(): UseDiscoveryReturn {
         // Add to collection as to-play
         await addGameAsToPlay(game, selectedPlatform);
 
-        // Also mark as seen so it doesn't show again
-        await seenGames.markAsSeen(game.id, selectedPlatform.id);
+        // Also mark as seen so it doesn't show again (with name for cross-platform filtering)
+        await seenGames.markAsSeen(game.id, selectedPlatform.id, game.name);
 
         // Save for undo
         setLastAction({ type: 'right', game, platform: selectedPlatform });

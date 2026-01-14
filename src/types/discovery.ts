@@ -45,6 +45,7 @@ export interface SeenGame {
   rawgId: number;
   platformId: number;
   dismissedAt: string; // ISO date string
+  name?: string; // Game name for cross-platform duplicate filtering (optional for backwards compatibility)
 }
 
 /**

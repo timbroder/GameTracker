@@ -12,6 +12,7 @@ import { HotUpdater } from '@hot-updater/react-native';
 import { TabNavigator } from './navigation';
 import { getRawgApiKey } from './config';
 import { setApiKey } from './services/rawgApi';
+import { runDuplicateMigration } from './services/migrateDuplicates';
 
 function App(): React.JSX.Element {
   useEffect(() => {
@@ -20,6 +21,9 @@ function App(): React.JSX.Element {
     if (apiKey) {
       setApiKey(apiKey);
     }
+
+    // Run one-time duplicate cleanup migration
+    runDuplicateMigration().catch(console.error);
   }, []);
 
   return (
