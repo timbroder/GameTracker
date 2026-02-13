@@ -17,11 +17,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_VERSION } from '../config';
 import { exportAndShareCSV } from '../services/csvExport';
+import { importGamesFromCSV } from '../services/csvImport';
 import { useSupabaseSync } from '../hooks';
+import { pick, types } from 'react-native-document-picker';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const {
     isAvailable,
@@ -59,15 +62,41 @@ export function SettingsScreen() {
     }
   }, []);
 
+  const handleImport = useCallback(async () => {
+    try {
+      const [result] = await pick({ type: [types.csv] });
+      if (!result?.uri) {
+        return;
+      }
+
+      setIsImporting(true);
+      const importResult = await importGamesFromCSV(result.uri);
+
+      Alert.alert(
+        'Import Complete',
+        `Imported: ${importResult.imported}\nSkipped (duplicates): ${importResult.skipped}${importResult.failed > 0 ? `\nFailed: ${importResult.failed}` : ''}`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to import games';
+      // Don't show error for user cancellation
+      if (!message.includes('cancel')) {
+        Alert.alert('Import Failed', message);
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  }, []);
+
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        {/* Export Section */}
+        {/* Data Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>EXPORT</Text>
+          <Text style={styles.sectionTitle}>DATA</Text>
           <TouchableOpacity
             style={styles.button}
             onPress={handleExport}
@@ -83,9 +112,24 @@ export function SettingsScreen() {
               </>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleImport}
+            disabled={isImporting}
+            activeOpacity={0.7}
+          >
+            {isImporting ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.buttonIcon}>📥</Text>
+                <Text style={styles.buttonText}>Import Games from CSV</Text>
+              </>
+            )}
+          </TouchableOpacity>
           <Text style={styles.hint}>
-            Export all games to a CSV file that you can open in Excel or Google
-            Sheets.
+            Export or import games as CSV files. Duplicates are automatically
+            skipped during import.
           </Text>
         </View>
 
