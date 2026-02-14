@@ -59,6 +59,14 @@ const PLATFORM_NAME_TO_ID: Record<string, number> = {
   'xbox one': 1,
   'xbox series s/x': 186,
   'xbox series x': 186,
+  'genesis': 167,
+  'sega genesis': 167,
+  'mega drive': 167,
+  'sega mega drive': 167,
+  'dreamcast': 106,
+  'sega dreamcast': 106,
+  'sega saturn': 107,
+  'saturn': 107,
   'pc': 4,
   'macos': 5,
   'linux': 6,
@@ -165,7 +173,7 @@ function parseDateString(dateStr: string): string | undefined {
 }
 
 const NUM_COLORS = 7;
-const RAWG_DELAY_MS = 300;
+const RAWG_DELAY_MS = 500;
 
 /**
  * Import games from a CSV file path.
@@ -327,42 +335,82 @@ export async function importGamesFromCSV(
 }
 
 /**
+ * Fetch image data from RAWG for a single game.
+ * Does NOT sleep — caller is responsible for pacing.
+ * Returns true on success.
+ */
+async function fetchGameImage(game: Game): Promise<boolean> {
+  try {
+    const details = await getGameDetails(game.rawgId);
+    game.boxArtUrl = details.background_image || '';
+
+    const matchedPlatform = details.platforms?.find(
+      (p) => p.platform.name.toLowerCase() === game.platform.toLowerCase(),
+    );
+    if (matchedPlatform) {
+      game.platformId = matchedPlatform.platform.id;
+      game.platformLogoUrl =
+        matchedPlatform.platform.image_background || undefined;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const SAVE_INTERVAL = 5;
+
+/**
  * Refresh box art for all games by re-fetching from RAWG.
- * Clears existing image URLs first, then fetches fresh ones.
+ * Uses adaptive pacing and saves progress incrementally so partial
+ * results aren't lost if the process is interrupted.
  */
 export async function refreshAllImages(): Promise<RefreshResult> {
   const games = await loadGames();
-  const gamesWithRawgId = games.filter((g) => g.rawgId > 0);
+  const gamesToRefresh = games.filter((g) => g.rawgId > 0);
 
   let refreshed = 0;
-  let failed = 0;
+  let consecutiveFailures = 0;
+  const failedIndices: number[] = [];
 
-  for (const game of games) {
-    if (game.rawgId <= 0) {
-      continue;
+  // First pass — 1s between requests, adaptive backoff on failure
+  for (let i = 0; i < gamesToRefresh.length; i++) {
+    const delay = consecutiveFailures > 0
+      ? Math.min(1000 * Math.pow(2, consecutiveFailures), 10000)
+      : 1000;
+    await sleep(delay);
+
+    const ok = await fetchGameImage(gamesToRefresh[i]);
+    if (ok) {
+      refreshed++;
+      consecutiveFailures = 0;
+    } else {
+      consecutiveFailures++;
+      failedIndices.push(i);
     }
 
-    try {
-      await sleep(RAWG_DELAY_MS);
-      const details = await getGameDetails(game.rawgId);
-      game.boxArtUrl = details.background_image || '';
-
-      const matchedPlatform = details.platforms?.find(
-        (p) => p.platform.name.toLowerCase() === game.platform.toLowerCase(),
-      );
-      if (matchedPlatform) {
-        game.platformId = matchedPlatform.platform.id;
-        game.platformLogoUrl =
-          matchedPlatform.platform.image_background || undefined;
-      }
-
-      refreshed++;
-    } catch {
-      failed++;
+    // Save progress every SAVE_INTERVAL successes
+    if (refreshed > 0 && refreshed % SAVE_INTERVAL === 0) {
+      await saveGames(games);
     }
   }
 
+  // Save after first pass
   await saveGames(games);
 
-  return { refreshed, failed, total: gamesWithRawgId.length };
+  // Retry pass — longer delays for games that failed
+  if (failedIndices.length > 0) {
+    await sleep(5000);
+    for (const idx of failedIndices) {
+      await sleep(2000);
+      const ok = await fetchGameImage(gamesToRefresh[idx]);
+      if (ok) {
+        refreshed++;
+      }
+    }
+    await saveGames(games);
+  }
+
+  const failed = gamesToRefresh.length - refreshed;
+  return { refreshed, failed, total: gamesToRefresh.length };
 }

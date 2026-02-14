@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { LEGACY_PLATFORMS, type LegacyPlatform } from '../types';
 
 export interface PlatformSelectorProps {
@@ -19,9 +19,13 @@ export function PlatformSelector({ onSelectPlatform }: PlatformSelectorProps) {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scrollView}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Choose a Platform</Text>
-      <Text style={styles.subtitle}>Discover classic games to play</Text>
+      <Text style={styles.subtitle}>Discover games to play</Text>
       <View style={styles.grid}>
         {LEGACY_PLATFORMS.map((platform) => (
           <TouchableOpacity
@@ -35,16 +39,19 @@ export function PlatformSelector({ onSelectPlatform }: PlatformSelectorProps) {
           </TouchableOpacity>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  container: {
     alignItems: 'center',
     paddingHorizontal: 24,
+    paddingTop: 40,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 28,
