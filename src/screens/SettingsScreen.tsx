@@ -89,7 +89,7 @@ export function SettingsScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
