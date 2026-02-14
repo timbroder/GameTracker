@@ -50,7 +50,7 @@ export interface GameListProps {
   sortedGames: SortedGames;
   loading: boolean;
   error: string | null;
-  onReorder: (reorderedIds: string[]) => Promise<void>;
+  onReorder: (shortListIds: string[], toPlayIds: string[]) => Promise<void>;
   onSwipe: (gameId: string) => Promise<void>;
   onInfo?: (gameId: string) => void;
   onRetry?: () => void;
@@ -105,6 +105,21 @@ function ErrorState({
 /**
  * GameList component
  */
+/**
+ * Section header for Short List showing count out of max 5
+ */
+function ShortListHeader({ count }: { count: number }) {
+  return (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionHeaderText}>
+        SHORT LIST ({count}/5)
+      </Text>
+    </View>
+  );
+}
+
+const MAX_SHORT_LIST = 5;
+
 export function GameList({
   sortedGames,
   loading,
@@ -114,34 +129,79 @@ export function GameList({
   onInfo,
   onRetry,
 }: GameListProps) {
-  const { unplayed, completed } = sortedGames;
+  const { shortList, unplayed, completed } = sortedGames;
 
-  const handleDragEnd = useCallback(
-    ({ data }: { data: Game[] }) => {
-      const reorderedIds = data.map((game) => game.id);
-      onReorder(reorderedIds);
-    },
-    [onReorder]
+  // Combine short list and unplayed into single draggable array
+  const combinedData = useMemo(
+    () => [...shortList, ...unplayed],
+    [shortList, unplayed]
   );
 
+  const shortListCount = shortList.length;
   const unplayedCount = unplayed.length;
-  const renderUnplayedItem = useCallback(
+
+  const handleDragEnd = useCallback(
+    ({ data, from, to }: { data: Game[]; from: number; to: number }) => {
+      const oldBoundary = shortListCount;
+      let newBoundary = oldBoundary;
+
+      if (from >= oldBoundary && to < oldBoundary) {
+        // To Play → Short List
+        newBoundary = Math.min(oldBoundary + 1, MAX_SHORT_LIST);
+      } else if (from < oldBoundary && to >= oldBoundary) {
+        // Short List → To Play
+        newBoundary = Math.max(oldBoundary - 1, 0);
+      }
+
+      // Cap at 5: if boundary exceeds max, clamp it
+      newBoundary = Math.min(newBoundary, MAX_SHORT_LIST);
+
+      const shortListIds = data.slice(0, newBoundary).map((g) => g.id);
+      const toPlayIds = data.slice(newBoundary).map((g) => g.id);
+      onReorder(shortListIds, toPlayIds);
+    },
+    [onReorder, shortListCount]
+  );
+
+  const renderItem = useCallback(
     ({ item, getIndex, drag, isActive }: RenderItemParams<Game>) => {
-      const index = getIndex() ?? 0;
+      const flatIndex = getIndex() ?? 0;
+      const isInShortList = flatIndex < shortListCount;
+
+      // Section-local index and total for gradient positioning
+      const sectionIndex = isInShortList
+        ? flatIndex
+        : flatIndex - shortListCount;
+      const sectionTotal = isInShortList ? shortListCount : unplayedCount;
+      const section = isInShortList ? 'shortList' : 'toPlay';
+
+      // Determine if we need a section header above this item
+      let header = null;
+      if (shortListCount > 0 && flatIndex === 0) {
+        header = <ShortListHeader count={shortListCount} />;
+      }
+      if (flatIndex === shortListCount) {
+        header = <SectionHeader title="To Play" count={unplayedCount} />;
+      }
+
       return (
-        <Pressable onLongPress={drag} delayLongPress={200}>
-          <GameRow
-            game={item}
-            index={index}
-            totalCount={unplayedCount}
-            onSwipe={onSwipe}
-            onInfo={onInfo}
-            isDragging={isActive}
-          />
-        </Pressable>
+        <>
+          {header}
+          <Pressable onLongPress={drag} delayLongPress={200}>
+            <GameRow
+              game={item}
+              index={sectionIndex}
+              totalCount={sectionTotal}
+              section={section}
+              onSwipe={onSwipe}
+              onInfo={onInfo}
+              isDragging={isActive}
+            />
+          </Pressable>
+        </>
       );
     },
-    [onSwipe, onInfo, unplayedCount]
+    [onSwipe, onInfo, shortListCount, unplayedCount]
   );
 
   const keyExtractor = useCallback((item: Game) => item.id, []);
@@ -159,6 +219,7 @@ export function GameList({
             game={game}
             index={index}
             totalCount={completedCount}
+            section="completed"
             onSwipe={onSwipe}
             onInfo={onInfo}
           />
@@ -168,7 +229,7 @@ export function GameList({
   }, [completed, completedCount, onSwipe, onInfo]);
 
   // Loading state - show skeleton while loading initial data
-  if (loading && unplayed.length === 0 && completed.length === 0) {
+  if (loading && shortList.length === 0 && unplayed.length === 0 && completed.length === 0) {
     return (
       <View style={styles.container}>
         <SkeletonLoader count={SKELETON_COUNT} />
@@ -182,7 +243,7 @@ export function GameList({
   }
 
   // Empty state
-  if (unplayed.length === 0 && completed.length === 0) {
+  if (shortList.length === 0 && unplayed.length === 0 && completed.length === 0) {
     return (
       <EmptyState message="No games yet. Tap + to add your first game!" />
     );
@@ -191,9 +252,9 @@ export function GameList({
   return (
     <GestureHandlerRootView style={styles.container}>
       <DraggableFlatList
-        data={unplayed}
+        data={combinedData}
         keyExtractor={keyExtractor}
-        renderItem={renderUnplayedItem}
+        renderItem={renderItem}
         onDragEnd={handleDragEnd}
         ListFooterComponent={ListFooter}
         ListEmptyComponent={
@@ -202,8 +263,12 @@ export function GameList({
           )
         }
         contentContainerStyle={styles.listContent}
-        // Performance optimizations
-        {...LIST_PERFORMANCE_CONFIG}
+        // Performance optimizations (without getItemLayout since headers vary height)
+        removeClippedSubviews={LIST_PERFORMANCE_CONFIG.removeClippedSubviews}
+        maxToRenderPerBatch={LIST_PERFORMANCE_CONFIG.maxToRenderPerBatch}
+        initialNumToRender={LIST_PERFORMANCE_CONFIG.initialNumToRender}
+        windowSize={LIST_PERFORMANCE_CONFIG.windowSize}
+        updateCellsBatchingPeriod={LIST_PERFORMANCE_CONFIG.updateCellsBatchingPeriod}
       />
     </GestureHandlerRootView>
   );

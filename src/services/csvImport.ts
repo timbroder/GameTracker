@@ -246,6 +246,7 @@ export async function importGamesFromCSV(
       const rawgId = rawgIdStr ? parseInt(rawgIdStr, 10) : 0;
       const statusStr = statusIdx !== -1 ? row[statusIdx]?.trim() : '';
       const isCompleted = statusStr.toLowerCase() === 'completed';
+      const isShortListed = statusStr.toLowerCase() === 'short list';
       const completedDateStr =
         completedDateIdx !== -1 ? row[completedDateIdx]?.trim() : '';
       const dateAddedStr =
@@ -304,6 +305,7 @@ export async function importGamesFromCSV(
         boxArtUrl,
         platformLogoUrl,
         isCompleted,
+        isShortListed,
         completedDate: isCompleted
           ? parseDateString(completedDateStr) || new Date().toISOString()
           : undefined,

@@ -39,6 +39,7 @@ interface GameRow {
   sort_order: number;
   date_added: string;
   color_index: number;
+  is_short_listed: boolean | null;
   updated_at: string;
 }
 
@@ -123,6 +124,7 @@ function gameToRow(game: Game, userId: string): Omit<GameRow, 'updated_at'> {
     sort_order: game.sortOrder,
     date_added: game.dateAdded,
     color_index: game.colorIndex,
+    is_short_listed: game.isShortListed || false,
   };
 }
 
@@ -144,6 +146,7 @@ function rowToGame(row: GameRow): Game {
     sortOrder: row.sort_order,
     dateAdded: row.date_added,
     colorIndex: row.color_index,
+    isShortListed: row.is_short_listed || false,
   };
 }
 

@@ -136,6 +136,8 @@ export async function toggleCompleted(id: string): Promise<Game> {
     completedDate: isNowCompleted ? new Date().toISOString() : undefined,
     // If marking as unplayed, give it a new sort order at the end
     sortOrder: isNowCompleted ? game.sortOrder : getNextSortOrder(games),
+    // Clear short list status when completing
+    isShortListed: isNowCompleted ? false : game.isShortListed,
   };
 
   games[index] = updatedGame;
@@ -163,6 +165,38 @@ export async function reorderGames(reorderedIds: string[]): Promise<void> {
   });
 
   // Convert map back to array
+  const updatedGames = Array.from(gameMap.values());
+  await saveGames(updatedGames);
+}
+
+/**
+ * Reorder games with Short List and To Play sections
+ * @param shortListIds - Array of game IDs in Short List order
+ * @param toPlayIds - Array of game IDs in To Play order
+ */
+export async function reorderWithSections(
+  shortListIds: string[],
+  toPlayIds: string[],
+): Promise<void> {
+  const games = await loadGames();
+  const gameMap = new Map(games.map((g) => [g.id, g]));
+
+  shortListIds.forEach((id, index) => {
+    const game = gameMap.get(id);
+    if (game) {
+      game.isShortListed = true;
+      game.sortOrder = index;
+    }
+  });
+
+  toPlayIds.forEach((id, index) => {
+    const game = gameMap.get(id);
+    if (game) {
+      game.isShortListed = false;
+      game.sortOrder = index;
+    }
+  });
+
   const updatedGames = Array.from(gameMap.values());
   await saveGames(updatedGames);
 }
