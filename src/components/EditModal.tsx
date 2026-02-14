@@ -13,27 +13,40 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
+  ScrollView,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import type { Game } from '../types';
-import { getGameColor, getGradientProps } from '../utils/colors';
+import {
+  getGradientProps,
+  getPositionalGreen,
+  getPositionalGold,
+  getPositionalGrey,
+} from '../utils/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { useHaptics } from '../hooks/useHaptics';
+
+const MAX_SHORT_LIST = 5;
 
 export interface EditModalProps {
   game: Game | null;
   visible: boolean;
+  shortListCount: number;
   onClose: () => void;
   onDelete: (gameId: string) => void;
   onToggleCompleted: (gameId: string) => void;
+  onToggleShortList: (gameId: string) => void;
 }
 
 export function EditModal({
   game,
   visible,
+  shortListCount,
   onClose,
   onDelete,
   onToggleCompleted,
+  onToggleShortList,
 }: EditModalProps) {
   const haptics = useHaptics();
 
@@ -53,6 +66,17 @@ export function EditModal({
     }
   }, [game, onToggleCompleted, onClose, haptics]);
 
+  const handleToggleShortList = useCallback(() => {
+    if (!game) return;
+    if (!game.isShortListed && shortListCount >= MAX_SHORT_LIST) {
+      Alert.alert('Short List Full', 'Remove a game from the Short List first (max 5).');
+      return;
+    }
+    haptics.light();
+    onToggleShortList(game.id);
+    onClose();
+  }, [game, shortListCount, onToggleShortList, onClose, haptics]);
+
   const handleClose = useCallback(() => {
     haptics.light();
     onClose();
@@ -62,8 +86,13 @@ export function EditModal({
     return null;
   }
 
-  const color = getGameColor(game.colorIndex, game.isCompleted);
-  const gradientProps = getGradientProps(color);
+  // Use section-based colors: darkest shade (index 0, total 1) for the header
+  const getHeaderColor = () => {
+    if (game.isCompleted) return getPositionalGrey(0, 1);
+    if (game.isShortListed) return getPositionalGold(0, 1);
+    return getPositionalGreen(0, 1);
+  };
+  const gradientProps = getGradientProps(getHeaderColor());
 
   return (
     <Modal
@@ -73,83 +102,106 @@ export function EditModal({
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
-        {/* Header with gradient */}
-        <LinearGradient {...gradientProps} style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Text style={styles.closeButtonText}>Done</Text>
-          </TouchableOpacity>
+        <ScrollView style={styles.scrollContainer} bounces={false}>
+          {/* Header with gradient */}
+          <LinearGradient {...gradientProps} style={styles.header}>
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <Text style={styles.closeButtonText}>Done</Text>
+            </TouchableOpacity>
 
-          {game.boxArtUrl ? (
-            <FastImage
-              source={{
-                uri: game.boxArtUrl,
-                priority: FastImage.priority.high,
-                cache: FastImage.cacheControl.immutable,
-              }}
-              style={styles.boxArt}
-              resizeMode={FastImage.resizeMode.cover}
-            />
-          ) : (
-            <View style={[styles.boxArt, styles.boxArtPlaceholder]}>
-              <Text style={styles.placeholderText}>🎮</Text>
+            {game.boxArtUrl ? (
+              <FastImage
+                source={{
+                  uri: game.boxArtUrl,
+                  priority: FastImage.priority.high,
+                  cache: FastImage.cacheControl.immutable,
+                }}
+                style={styles.boxArt}
+                resizeMode={FastImage.resizeMode.cover}
+              />
+            ) : (
+              <View style={[styles.boxArt, styles.boxArtPlaceholder]}>
+                <Text style={styles.placeholderText}>🎮</Text>
+              </View>
+            )}
+
+            <Text style={styles.gameName} numberOfLines={2}>{game.name}</Text>
+            <Text style={styles.platform}>{game.platform}</Text>
+          </LinearGradient>
+
+          {/* Content */}
+          <View style={styles.content}>
+            {/* Status */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Status</Text>
+              <TouchableOpacity
+                style={styles.statusButton}
+                onPress={handleToggleCompleted}
+              >
+                <Text style={styles.statusButtonText}>
+                  {game.isCompleted ? '✓ Completed' : '○ Not Played'}
+                </Text>
+                <Text style={styles.statusHint}>Tap to toggle</Text>
+              </TouchableOpacity>
             </View>
-          )}
 
-          <Text style={styles.gameName}>{game.name}</Text>
-          <Text style={styles.platform}>{game.platform}</Text>
-        </LinearGradient>
+            {/* Short List toggle (only for non-completed games) */}
+            {!game.isCompleted && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Short List</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.statusButton,
+                    game.isShortListed && styles.shortListButtonActive,
+                  ]}
+                  onPress={handleToggleShortList}
+                >
+                  <Text style={styles.statusButtonText}>
+                    {game.isShortListed ? '★ On Short List' : '☆ Add to Short List'}
+                  </Text>
+                  <Text style={styles.statusHint}>
+                    {game.isShortListed ? 'Tap to remove' : `${shortListCount}/${MAX_SHORT_LIST}`}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
-        {/* Content */}
-        <View style={styles.content}>
-          {/* Status */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Status</Text>
+            {/* Details */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Details</Text>
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Added</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(game.dateAdded).toLocaleDateString()}
+                </Text>
+              </View>
+              {game.isCompleted && game.completedDate && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Completed</Text>
+                  <Text style={styles.detailValue}>
+                    {new Date(game.completedDate).toLocaleDateString()}
+                  </Text>
+                </View>
+              )}
+              {game.playtimeHours !== undefined && game.playtimeHours > 0 && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Playtime</Text>
+                  <Text style={styles.detailValue}>
+                    {game.playtimeHours} hours
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Delete Button */}
             <TouchableOpacity
-              style={styles.statusButton}
-              onPress={handleToggleCompleted}
+              style={styles.deleteButton}
+              onPress={handleDelete}
             >
-              <Text style={styles.statusButtonText}>
-                {game.isCompleted ? '✓ Completed' : '○ Not Played'}
-              </Text>
-              <Text style={styles.statusHint}>Tap to toggle</Text>
+              <Text style={styles.deleteButtonText}>Delete Game</Text>
             </TouchableOpacity>
           </View>
-
-          {/* Details */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Details</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Added</Text>
-              <Text style={styles.detailValue}>
-                {new Date(game.dateAdded).toLocaleDateString()}
-              </Text>
-            </View>
-            {game.isCompleted && game.completedDate && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Completed</Text>
-                <Text style={styles.detailValue}>
-                  {new Date(game.completedDate).toLocaleDateString()}
-                </Text>
-              </View>
-            )}
-            {game.playtimeHours !== undefined && game.playtimeHours > 0 && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Playtime</Text>
-                <Text style={styles.detailValue}>
-                  {game.playtimeHours} hours
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Delete Button */}
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDelete}
-          >
-            <Text style={styles.deleteButtonText}>Delete Game</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     </Modal>
   );
@@ -160,16 +212,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  scrollContainer: {
+    flex: 1,
+  },
   header: {
     paddingTop: 16,
     paddingBottom: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   closeButton: {
     alignSelf: 'flex-end',
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
   },
   closeButtonText: {
     color: '#FFF',
@@ -191,7 +246,7 @@ const styles = StyleSheet.create({
     fontSize: 48,
   },
   gameName: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#FFF',
     textAlign: 'center',
@@ -202,8 +257,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.8)',
   },
   content: {
-    flex: 1,
     padding: 20,
+    paddingBottom: 40,
   },
   section: {
     marginBottom: 24,
@@ -232,6 +287,10 @@ const styles = StyleSheet.create({
   statusHint: {
     color: '#666',
     fontSize: 13,
+  },
+  shortListButtonActive: {
+    borderWidth: 1,
+    borderColor: '#B8860B',
   },
   detailRow: {
     flexDirection: 'row',

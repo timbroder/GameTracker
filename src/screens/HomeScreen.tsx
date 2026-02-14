@@ -22,6 +22,7 @@ export function HomeScreen() {
     loadGames,
     toggleCompleted,
     reorderWithSections,
+    toggleShortList,
     deleteGame,
   } = useGames();
 
@@ -197,6 +198,18 @@ export function HomeScreen() {
     [toggleCompleted, supabaseSync]
   );
 
+  const handleToggleShortList = useCallback(
+    async (gameId: string) => {
+      try {
+        await toggleShortList(gameId);
+        supabaseSync.syncAfterChange();
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update short list');
+      }
+    },
+    [toggleShortList, supabaseSync]
+  );
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Game list */}
@@ -233,9 +246,11 @@ export function HomeScreen() {
       <EditModal
         game={editingGame}
         visible={isEditModalVisible}
+        shortListCount={sortedGames.shortList.length}
         onClose={handleCloseEditModal}
         onDelete={handleDeleteGame}
         onToggleCompleted={handleToggleCompletedFromModal}
+        onToggleShortList={handleToggleShortList}
       />
     </View>
   );

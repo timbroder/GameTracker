@@ -12,6 +12,7 @@ import {
   toggleCompleted as toggleCompletedService,
   reorderGames as reorderGamesService,
   reorderWithSections as reorderWithSectionsService,
+  toggleShortList as toggleShortListService,
   type NewGameInput,
 } from '../services/gameManager';
 import { sortGames, type SortedGames } from '../utils/sorting';
@@ -31,6 +32,7 @@ export interface UseGamesActions {
   toggleCompleted: (id: string) => Promise<Game>;
   reorderGames: (reorderedIds: string[]) => Promise<void>;
   reorderWithSections: (shortListIds: string[], toPlayIds: string[]) => Promise<void>;
+  toggleShortList: (id: string) => Promise<Game>;
   clearError: () => void;
 }
 
@@ -158,6 +160,22 @@ export function useGames(): UseGamesReturn {
     []
   );
 
+  // Toggle short list status
+  const toggleShortList = useCallback(async (id: string): Promise<Game> => {
+    setError(null);
+    try {
+      const updatedGame = await toggleShortListService(id);
+      setGames((prev) =>
+        prev.map((game) => (game.id === id ? updatedGame : game))
+      );
+      return updatedGame;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to toggle short list';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
@@ -180,6 +198,7 @@ export function useGames(): UseGamesReturn {
     toggleCompleted,
     reorderGames,
     reorderWithSections,
+    toggleShortList,
     clearError,
   };
 }

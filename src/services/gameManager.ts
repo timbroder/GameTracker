@@ -170,6 +170,52 @@ export async function reorderGames(reorderedIds: string[]): Promise<void> {
 }
 
 /**
+ * Toggle a game's short list status
+ * When adding: sets isShortListed=true, assigns sort order at end of short list
+ * When removing: sets isShortListed=false, assigns sort order at top of to play
+ */
+export async function toggleShortList(id: string): Promise<Game> {
+  const games = await loadGames();
+  const index = games.findIndex((g) => g.id === id);
+
+  if (index === -1) {
+    throw new Error(`Game with id ${id} not found`);
+  }
+
+  const game = games[index];
+  const isNowShortListed = !game.isShortListed;
+
+  let newSortOrder: number;
+  if (isNowShortListed) {
+    // Add to end of short list
+    const shortListGames = games.filter((g) => !g.isCompleted && g.isShortListed);
+    newSortOrder = shortListGames.length > 0
+      ? Math.max(...shortListGames.map((g) => g.sortOrder)) + 1
+      : 0;
+  } else {
+    // Add to top of to play: shift existing to play items down
+    const toPlayGames = games.filter((g) => !g.isCompleted && !g.isShortListed && g.id !== id);
+    for (const g of toPlayGames) {
+      const gi = games.findIndex((x) => x.id === g.id);
+      if (gi !== -1) {
+        games[gi] = { ...games[gi], sortOrder: games[gi].sortOrder + 1 };
+      }
+    }
+    newSortOrder = 0;
+  }
+
+  const updatedGame: Game = {
+    ...game,
+    isShortListed: isNowShortListed,
+    sortOrder: newSortOrder,
+  };
+
+  games[index] = updatedGame;
+  await saveGames(games);
+  return updatedGame;
+}
+
+/**
  * Reorder games with Short List and To Play sections
  * @param shortListIds - Array of game IDs in Short List order
  * @param toPlayIds - Array of game IDs in To Play order
