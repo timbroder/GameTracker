@@ -23,6 +23,7 @@ import { useSupabaseSync } from '../hooks';
 import { RawgIdMatcher } from '../components';
 import { pick, types } from 'react-native-document-picker';
 import * as gameManager from '../services/gameManager';
+import { saveGames } from '../services/storage';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -187,6 +188,31 @@ export function SettingsScreen() {
               </View>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.dangerButton}
+            onPress={() => {
+              Alert.alert(
+                'Delete All Games',
+                'This will permanently remove all games from the app. This cannot be undone. Export first if you want a backup.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete All',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await saveGames([]);
+                      setUnmatchedCount(0);
+                      Alert.alert('Done', 'All games have been deleted.');
+                    },
+                  },
+                ],
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonIcon}>🗑️</Text>
+            <Text style={styles.dangerButtonText}>Delete All Data</Text>
+          </TouchableOpacity>
           <Text style={styles.hint}>
             Export or import games as CSV files. Duplicates are automatically
             skipped during import. Refresh images re-downloads all box art from
@@ -331,6 +357,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#FFF',
+  },
+  dangerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a1a1a',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    minHeight: 56,
+    borderWidth: 1,
+    borderColor: '#4a2020',
+  },
+  dangerButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FF6B6B',
   },
   hint: {
     fontSize: 13,
