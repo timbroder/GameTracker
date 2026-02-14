@@ -17,6 +17,12 @@ export interface ImportResult {
   failed: number;
 }
 
+export interface RefreshResult {
+  refreshed: number;
+  failed: number;
+  total: number;
+}
+
 /**
  * Known platform name → RAWG platform ID mapping.
  * Used as fallback when RAWG API lookup fails.
@@ -65,6 +71,22 @@ const PLATFORM_NAME_TO_ID: Record<string, number> = {
  */
 function lookupPlatformId(platformName: string): number {
   return PLATFORM_NAME_TO_ID[platformName.toLowerCase().trim()] ?? 0;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Normalize a file URI from document picker for RNFS.
+ * Decodes percent-encoded characters and strips file:// prefix.
+ */
+function normalizeFilePath(uri: string): string {
+  let path = decodeURIComponent(uri);
+  if (path.startsWith('file://')) {
+    path = path.slice(7);
+  }
+  return path;
 }
 
 /**
@@ -143,20 +165,22 @@ function parseDateString(dateStr: string): string | undefined {
 }
 
 const NUM_COLORS = 7;
+const RAWG_DELAY_MS = 300;
 
 /**
  * Import games from a CSV file path.
  *
  * 1. Reads and parses the CSV
  * 2. Deduplicates against existing games (by rawgId + platform)
- * 3. Fetches box art from RAWG for each new game
+ * 3. Fetches box art from RAWG for each new game (with delay to avoid rate limits)
  * 4. Saves appended games
  */
 export async function importGamesFromCSV(
   filePath: string,
 ): Promise<ImportResult> {
-  // Read file contents
-  const csvContent = await RNFS.readFile(filePath, 'utf8');
+  // Normalize the file URI from document picker
+  const normalizedPath = normalizeFilePath(filePath);
+  const csvContent = await RNFS.readFile(normalizedPath, 'utf8');
   const rows = parseCSV(csvContent);
 
   if (rows.length < 2) {
@@ -242,9 +266,10 @@ export async function importGamesFromCSV(
       let platformId = lookupPlatformId(platform);
       let platformLogoUrl: string | undefined;
 
-      // Try to fetch from RAWG for box art
+      // Try to fetch from RAWG for box art (with delay to avoid rate limits)
       if (rawgId) {
         try {
+          await sleep(RAWG_DELAY_MS);
           const details = await getGameDetails(rawgId);
           boxArtUrl = details.background_image || '';
 
@@ -299,4 +324,45 @@ export async function importGamesFromCSV(
   }
 
   return { imported, skipped, failed };
+}
+
+/**
+ * Refresh box art for all games by re-fetching from RAWG.
+ * Clears existing image URLs first, then fetches fresh ones.
+ */
+export async function refreshAllImages(): Promise<RefreshResult> {
+  const games = await loadGames();
+  const gamesWithRawgId = games.filter((g) => g.rawgId > 0);
+
+  let refreshed = 0;
+  let failed = 0;
+
+  for (const game of games) {
+    if (game.rawgId <= 0) {
+      continue;
+    }
+
+    try {
+      await sleep(RAWG_DELAY_MS);
+      const details = await getGameDetails(game.rawgId);
+      game.boxArtUrl = details.background_image || '';
+
+      const matchedPlatform = details.platforms?.find(
+        (p) => p.platform.name.toLowerCase() === game.platform.toLowerCase(),
+      );
+      if (matchedPlatform) {
+        game.platformId = matchedPlatform.platform.id;
+        game.platformLogoUrl =
+          matchedPlatform.platform.image_background || undefined;
+      }
+
+      refreshed++;
+    } catch {
+      failed++;
+    }
+  }
+
+  await saveGames(games);
+
+  return { refreshed, failed, total: gamesWithRawgId.length };
 }

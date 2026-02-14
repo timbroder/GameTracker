@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { APP_VERSION } from '../config';
 import { exportAndShareCSV } from '../services/csvExport';
-import { importGamesFromCSV } from '../services/csvImport';
+import { importGamesFromCSV, refreshAllImages } from '../services/csvImport';
 import { useSupabaseSync } from '../hooks';
 import { pick, types } from 'react-native-document-picker';
 
@@ -25,6 +25,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const {
     isAvailable,
@@ -88,6 +89,23 @@ export function SettingsScreen() {
     }
   }, []);
 
+  const handleRefreshImages = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const result = await refreshAllImages();
+      Alert.alert(
+        'Refresh Complete',
+        `Refreshed: ${result.refreshed} of ${result.total}${result.failed > 0 ? `\nFailed: ${result.failed}` : ''}`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to refresh images';
+      Alert.alert('Refresh Failed', message);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView
@@ -127,9 +145,25 @@ export function SettingsScreen() {
               </>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleRefreshImages}
+            disabled={isRefreshing}
+            activeOpacity={0.7}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.buttonIcon}>🖼️</Text>
+                <Text style={styles.buttonText}>Refresh All Images</Text>
+              </>
+            )}
+          </TouchableOpacity>
           <Text style={styles.hint}>
             Export or import games as CSV files. Duplicates are automatically
-            skipped during import.
+            skipped during import. Refresh images re-downloads all box art from
+            RAWG.
           </Text>
         </View>
 
