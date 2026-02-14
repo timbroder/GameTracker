@@ -114,6 +114,11 @@ function ShortListHeader({ count }: { count: number }) {
       <Text style={styles.sectionHeaderText}>
         SHORT LIST ({count}/5)
       </Text>
+      {count === 0 && (
+        <Text style={styles.sectionHint}>
+          Tap i on a game to add it here
+        </Text>
+      )}
     </View>
   );
 }
@@ -177,10 +182,7 @@ export function GameList({
 
       // Determine if we need a section header above this item
       let header = null;
-      if (shortListCount > 0 && flatIndex === 0) {
-        header = <ShortListHeader count={shortListCount} />;
-      }
-      if (flatIndex === shortListCount) {
+      if (flatIndex === shortListCount && unplayedCount > 0) {
         header = <SectionHeader title="To Play" count={unplayedCount} />;
       }
 
@@ -256,9 +258,12 @@ export function GameList({
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         onDragEnd={handleDragEnd}
+        ListHeaderComponent={<ShortListHeader count={shortListCount} />}
         ListFooterComponent={ListFooter}
         ListEmptyComponent={
-          completed.length > 0 ? null : (
+          completed.length > 0 ? (
+            <SectionHeader title="To Play" count={0} />
+          ) : (
             <EmptyState message="No games to play!" />
           )
         }
@@ -332,6 +337,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  sectionHint: {
+    color: '#555',
+    fontSize: 12,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });
 
