@@ -58,8 +58,8 @@ export function generateCSV(games: Game[]): string {
     escapeCSV(game.name),
     escapeCSV(game.platform),
     game.isCompleted ? 'Completed' : 'To Play',
-    formatDate(game.completedDate),
-    formatDate(game.dateAdded),
+    escapeCSV(formatDate(game.completedDate)),
+    escapeCSV(formatDate(game.dateAdded)),
     escapeCSV(game.playtimeHours),
     escapeCSV(game.rawgId),
   ]);
