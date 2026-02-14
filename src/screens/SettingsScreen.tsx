@@ -15,17 +15,30 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { APP_VERSION } from '../config';
 import { exportAndShareCSV } from '../services/csvExport';
 import { importGamesFromCSV, refreshAllImages } from '../services/csvImport';
 import { useSupabaseSync } from '../hooks';
+import { RawgIdMatcher } from '../components';
 import { pick, types } from 'react-native-document-picker';
+import * as gameManager from '../services/gameManager';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [matcherVisible, setMatcherVisible] = useState(false);
+  const [unmatchedCount, setUnmatchedCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      gameManager.getGames().then(games => {
+        setUnmatchedCount(games.filter(g => g.rawgId === 0).length);
+      });
+    }, []),
+  );
 
   const {
     isAvailable,
@@ -160,10 +173,24 @@ export function SettingsScreen() {
               </>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, unmatchedCount === 0 && styles.buttonDisabled]}
+            onPress={() => setMatcherVisible(true)}
+            disabled={unmatchedCount === 0}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonIcon}>🔗</Text>
+            <Text style={styles.buttonText}>Match RAWG IDs</Text>
+            {unmatchedCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unmatchedCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <Text style={styles.hint}>
             Export or import games as CSV files. Duplicates are automatically
             skipped during import. Refresh images re-downloads all box art from
-            RAWG.
+            RAWG. Match RAWG IDs links imported games to RAWG for image support.
           </Text>
         </View>
 
@@ -231,6 +258,17 @@ export function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <RawgIdMatcher
+        visible={matcherVisible}
+        onClose={() => {
+          setMatcherVisible(false);
+          // Refresh unmatched count
+          gameManager.getGames().then(games => {
+            setUnmatchedCount(games.filter(g => g.rawgId === 0).length);
+          });
+        }}
+      />
     </View>
   );
 }
@@ -271,9 +309,27 @@ const styles = StyleSheet.create({
   buttonIcon: {
     fontSize: 18,
   },
+  buttonDisabled: {
+    opacity: 0.4,
+  },
   buttonText: {
     fontSize: 17,
     fontWeight: '600',
+    color: '#FFF',
+  },
+  badge: {
+    backgroundColor: '#4D96FF',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 4,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
     color: '#FFF',
   },
   hint: {

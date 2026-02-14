@@ -24,3 +24,6 @@ export type {
 
 export { useDiscovery } from './useDiscovery';
 export type { UseDiscoveryReturn } from './useDiscovery';
+
+export { useRawgIdMatcher } from './useRawgIdMatcher';
+export type { UseRawgIdMatcherReturn } from './useRawgIdMatcher';
