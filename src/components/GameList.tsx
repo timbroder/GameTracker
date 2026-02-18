@@ -10,6 +10,7 @@ import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   Pressable,
   TouchableOpacity,
 } from 'react-native';
@@ -240,24 +241,42 @@ export function GameList({
 
   const keyExtractor = useCallback((item: Game) => item.id, []);
 
-  // Footer component with completed games
-  // GameRow is already memo'd, so stable onSwipe/onInfo refs prevent re-renders
-  // of individual rows when the completed array reference changes
+  // Completed games footer — virtualized with FlatList so only visible rows mount
   const completedCount = completed.length;
+
+  const renderCompletedItem = useCallback(
+    ({ item, index }: { item: Game; index: number }) => (
+      <GameRow
+        game={item}
+        index={index}
+        totalCount={completedCount}
+        section="completed"
+        onSwipe={onSwipe}
+        onInfo={onInfo}
+      />
+    ),
+    [completedCount, onSwipe, onInfo]
+  );
+
+  const completedKeyExtractor = useCallback((item: Game) => item.id, []);
+
   const ListFooter = completedCount === 0 ? null : (
     <View style={styles.footerContainer}>
       <SectionHeader title="Completed" count={completedCount} />
-      {completed.map((game, index) => (
-        <GameRow
-          key={game.id}
-          game={game}
-          index={index}
-          totalCount={completedCount}
-          section="completed"
-          onSwipe={onSwipe}
-          onInfo={onInfo}
-        />
-      ))}
+      <FlatList
+        data={completed}
+        keyExtractor={completedKeyExtractor}
+        renderItem={renderCompletedItem}
+        getItemLayout={(_data, index) => ({
+          length: GAME_ROW_HEIGHT,
+          offset: GAME_ROW_HEIGHT * index,
+          index,
+        })}
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={5}
+        scrollEnabled={false}
+      />
     </View>
   );
 

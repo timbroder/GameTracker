@@ -8,7 +8,7 @@
  * - Completed state with grey coloring
  */
 
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
@@ -18,9 +18,6 @@ import Animated, {
   withSpring,
   withTiming,
   runOnJS,
-  FadeIn,
-  FadeOut,
-  Layout,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { Game } from '../types';
@@ -218,6 +215,7 @@ function GameRowComponent({
   const haptics = useHaptics();
   const translateX = useSharedValue(0);
   const currentZone = useSharedValue(0); // positive = right zones, negative = left zones
+  const [isSwiping, setIsSwiping] = useState(false);
 
   const maxRightZone = getMaxRightZone(section);
   const maxLeftZone = getMaxLeftZone(section);
@@ -251,11 +249,17 @@ function GameRowComponent({
     }
   }, [onInfo, game.id, haptics]);
 
+  const showSwipeIndicators = useCallback(() => setIsSwiping(true), []);
+  const hideSwipeIndicators = useCallback(() => setIsSwiping(false), []);
+
   // Pan gesture for bidirectional swipe (memoized to avoid recreating on every render)
   const panGesture = useMemo(() => Gesture.Pan()
     .activeOffsetX([-10, 10])
     .failOffsetY([-30, 30])
     .maxPointers(1)
+    .onStart(() => {
+      runOnJS(showSwipeIndicators)();
+    })
     .onUpdate((event) => {
       const tx = event.translationX;
 
@@ -296,13 +300,14 @@ function GameRowComponent({
         translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
       currentZone.value = 0;
-    }), [maxRightZone, maxLeftZone, handleSwipeAction, haptics]);
+      runOnJS(hideSwipeIndicators)();
+    }), [maxRightZone, maxLeftZone, handleSwipeAction, haptics, showSwipeIndicators, hideSwipeIndicators]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
 
-  // === Right swipe zone backgrounds (highlight active zone green) ===
+  // === Swipe zone backgrounds (only created when hooks are called, but always called) ===
   const rightZone1Bg = useAnimatedStyle(() => ({
     backgroundColor: currentZone.value === 1 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
   }));
@@ -315,7 +320,6 @@ function GameRowComponent({
     backgroundColor: currentZone.value === 3 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
   }));
 
-  // === Left swipe zone backgrounds (highlight active zone green) ===
   const leftZone1Bg = useAnimatedStyle(() => ({
     backgroundColor: currentZone.value === -1 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
   }));
@@ -332,41 +336,41 @@ function GameRowComponent({
 
   return (
     <GestureDetector gesture={panGesture}>
-      <Animated.View
-        style={styles.rowWrapper}
-        entering={FadeIn.duration(300)}
-        exiting={FadeOut.duration(200)}
-        layout={Layout.springify().damping(15).stiffness(100)}
-      >
-        {/* Right-swipe indicators (left side, side-by-side) */}
-        <View style={styles.rightSwipeContainer}>
-          <Animated.View style={[styles.swipeIcon, rightZone1Bg]}>
-            <Text style={styles.swipeIconText}>{rIcon1}</Text>
-          </Animated.View>
-          {maxRightZone >= 2 && (
-            <Animated.View style={[styles.swipeIcon, rightZone2Bg]}>
-              <Text style={styles.swipeIconText}>{rIcon2}</Text>
-            </Animated.View>
-          )}
-          {maxRightZone >= 3 && (
-            <Animated.View style={[styles.swipeIcon, rightZone3Bg]}>
-              <Text style={styles.swipeIconText}>{rIcon3}</Text>
-            </Animated.View>
-          )}
-        </View>
-
-        {/* Left-swipe indicators (right side, side-by-side) */}
-        {maxLeftZone >= 1 && (
-          <View style={styles.leftSwipeContainer}>
-            {maxLeftZone >= 2 && (
-              <Animated.View style={[styles.swipeIcon, leftZone2Bg]}>
-                <Text style={styles.swipeIconText}>{lIcon2}</Text>
+      <View style={styles.rowWrapper}>
+        {/* Swipe indicators only mount when actively swiping */}
+        {isSwiping && (
+          <>
+            {/* Right-swipe indicators (left side, side-by-side) */}
+            <View style={styles.rightSwipeContainer}>
+              <Animated.View style={[styles.swipeIcon, rightZone1Bg]}>
+                <Text style={styles.swipeIconText}>{rIcon1}</Text>
               </Animated.View>
+              {maxRightZone >= 2 && (
+                <Animated.View style={[styles.swipeIcon, rightZone2Bg]}>
+                  <Text style={styles.swipeIconText}>{rIcon2}</Text>
+                </Animated.View>
+              )}
+              {maxRightZone >= 3 && (
+                <Animated.View style={[styles.swipeIcon, rightZone3Bg]}>
+                  <Text style={styles.swipeIconText}>{rIcon3}</Text>
+                </Animated.View>
+              )}
+            </View>
+
+            {/* Left-swipe indicators (right side, side-by-side) */}
+            {maxLeftZone >= 1 && (
+              <View style={styles.leftSwipeContainer}>
+                {maxLeftZone >= 2 && (
+                  <Animated.View style={[styles.swipeIcon, leftZone2Bg]}>
+                    <Text style={styles.swipeIconText}>{lIcon2}</Text>
+                  </Animated.View>
+                )}
+                <Animated.View style={[styles.swipeIcon, leftZone1Bg]}>
+                  <Text style={styles.swipeIconText}>{lIcon1}</Text>
+                </Animated.View>
+              </View>
             )}
-            <Animated.View style={[styles.swipeIcon, leftZone1Bg]}>
-              <Text style={styles.swipeIconText}>{lIcon1}</Text>
-            </Animated.View>
-          </View>
+          </>
         )}
 
         <Animated.View style={[styles.rowContent, animatedStyle, isDragging && styles.dragging]}>
@@ -409,7 +413,7 @@ function GameRowComponent({
             <InfoButton onPress={handleInfo} />
           </View>
         </Animated.View>
-      </Animated.View>
+      </View>
     </GestureDetector>
   );
 }
