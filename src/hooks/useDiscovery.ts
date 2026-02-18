@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { getGamesByPlatform } from '../services/rawgApi';
-import { addGameAsCompleted, addGameAsToPlay, isGameInCollection, getCollectionGameNames } from '../services/discoveryService';
+import { addGameAsCompleted, addGameAsSomedayMaybe, isGameInCollection, getCollectionGameNames } from '../services/discoveryService';
 import { useSeenGames } from './useSeenGames';
 import { useHaptics } from './useHaptics';
 import type { LegacyPlatform, DiscoveryGame, DiscoveryState } from '../types';
@@ -247,8 +247,8 @@ export function useDiscovery(): UseDiscoveryReturn {
       haptics.medium();
 
       try {
-        // Add to collection as to-play
-        await addGameAsToPlay(game, selectedPlatform);
+        // Add to collection as someday maybe
+        await addGameAsSomedayMaybe(game, selectedPlatform);
 
         // Also mark as seen so it doesn't show again (with name for cross-platform filtering)
         await seenGames.markAsSeen(game.id, selectedPlatform.id, game.name);

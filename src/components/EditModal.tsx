@@ -23,6 +23,7 @@ import {
   getPositionalGreen,
   getPositionalGold,
   getPositionalGrey,
+  getPositionalBlue,
 } from '../utils/colors';
 import LinearGradient from 'react-native-linear-gradient';
 import { useHaptics } from '../hooks/useHaptics';
@@ -37,6 +38,7 @@ export interface EditModalProps {
   onDelete: (gameId: string) => void;
   onToggleCompleted: (gameId: string) => void;
   onToggleShortList: (gameId: string) => void;
+  onToggleSomedayMaybe: (gameId: string) => void;
 }
 
 export function EditModal({
@@ -47,6 +49,7 @@ export function EditModal({
   onDelete,
   onToggleCompleted,
   onToggleShortList,
+  onToggleSomedayMaybe,
 }: EditModalProps) {
   const haptics = useHaptics();
 
@@ -77,6 +80,14 @@ export function EditModal({
     onClose();
   }, [game, shortListCount, onToggleShortList, onClose, haptics]);
 
+  const handleToggleSomedayMaybe = useCallback(() => {
+    if (game) {
+      haptics.light();
+      onToggleSomedayMaybe(game.id);
+      onClose();
+    }
+  }, [game, onToggleSomedayMaybe, onClose, haptics]);
+
   const handleClose = useCallback(() => {
     haptics.light();
     onClose();
@@ -90,6 +101,7 @@ export function EditModal({
   const getHeaderColor = () => {
     if (game.isCompleted) return getPositionalGrey(0, 1);
     if (game.isShortListed) return getPositionalGold(0, 1);
+    if (game.isSomedayMaybe) return getPositionalBlue(0, 1);
     return getPositionalGreen(0, 1);
   };
   const gradientProps = getGradientProps(getHeaderColor());
@@ -166,6 +178,25 @@ export function EditModal({
               </View>
             )}
 
+            {/* Someday Maybe toggle (only for non-completed, non-short-listed games) */}
+            {!game.isCompleted && !game.isShortListed && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Someday, Maybe</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.statusButton,
+                    game.isSomedayMaybe && styles.somedayMaybeButtonActive,
+                  ]}
+                  onPress={handleToggleSomedayMaybe}
+                >
+                  <Text style={styles.statusButtonText}>
+                    {game.isSomedayMaybe ? '~ On Someday, Maybe' : '~ Move to Someday, Maybe'}
+                  </Text>
+                  <Text style={styles.statusHint}>Tap to toggle</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Details */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Details</Text>
@@ -216,15 +247,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 16,
+    paddingTop: 24,
     paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: 'hidden',
   },
   closeButton: {
     alignSelf: 'flex-end',
     paddingVertical: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
   },
   closeButtonText: {
     color: '#FFF',
@@ -291,6 +325,10 @@ const styles = StyleSheet.create({
   shortListButtonActive: {
     borderWidth: 1,
     borderColor: '#B8860B',
+  },
+  somedayMaybeButtonActive: {
+    borderWidth: 1,
+    borderColor: '#1A237E',
   },
   detailRow: {
     flexDirection: 'row',

@@ -29,6 +29,7 @@ import {
   getPositionalGreen,
   getPositionalGrey,
   getPositionalGold,
+  getPositionalBlue,
 } from '../utils/colors';
 import { useHaptics } from '../hooks/useHaptics';
 
@@ -56,12 +57,14 @@ function formatCompletedDate(isoDate: string): string {
   return dateStr;
 }
 
+export type SwipeAction = 'completed' | 'moveUp1' | 'moveUp2';
+
 export interface GameRowProps {
   game: Game;
   index: number;      // Position in the list (0-based)
   totalCount: number; // Total items in this section
-  section?: 'shortList' | 'toPlay' | 'completed';
-  onSwipe?: (gameId: string) => void;
+  section?: 'shortList' | 'toPlay' | 'somedayMaybe' | 'completed';
+  onSwipe?: (gameId: string, action: SwipeAction) => void;
   onInfo?: (gameId: string) => void;
   isDragging?: boolean;
 }
@@ -72,9 +75,11 @@ export interface GameRowProps {
 export const GAME_ROW_HEIGHT = 88;
 
 /**
- * Swipe threshold to trigger action (lowered for better responsiveness)
+ * Multi-zone swipe thresholds
  */
-const SWIPE_THRESHOLD = 60;
+const SWIPE_ZONE_1 = 60;
+const SWIPE_ZONE_2 = 120;
+const SWIPE_ZONE_3 = 180;
 
 /**
  * Placeholder component for missing box art
@@ -125,6 +130,54 @@ function InfoButton({ onPress }: { onPress: () => void }) {
 /**
  * GameRow component with gestures
  */
+/**
+ * Get the maximum zone available for a given section
+ * Short List: zone 1 only (completed)
+ * To Play: zones 1-2 (completed, Short List)
+ * Someday Maybe: zones 1-3 (completed, To Play, Short List)
+ * Completed: zones 1-3 (un-complete to Someday Maybe, To Play, Short List)
+ */
+function getMaxZone(section?: string): number {
+  switch (section) {
+    case 'shortList': return 1;
+    case 'toPlay': return 2;
+    case 'somedayMaybe': return 3;
+    case 'completed': return 3;
+    default: return 1;
+  }
+}
+
+/**
+ * Get the icon for a given zone and section
+ */
+function getZoneIcon(zone: number, section?: string): string {
+  if (section === 'completed') {
+    if (zone === 1) return '↩';
+    if (zone === 2) return '↑';
+    return '⇈';
+  }
+  if (zone === 1) return '✓';
+  if (zone === 2) return '↑';
+  return '⇈';
+}
+
+/**
+ * Get the zone color
+ * Zone 1 = green (complete/un-complete), Zones 2-3 = blue (promote)
+ */
+function getZoneColor(zone: number): string {
+  return zone === 1 ? '#4CAF50' : '#1A237E';
+}
+
+/**
+ * Determine swipe action from zone and section
+ */
+function getSwipeAction(zone: number, section?: string): SwipeAction {
+  if (zone === 1) return 'completed';
+  if (zone === 2) return 'moveUp1';
+  return 'moveUp2';
+}
+
 function GameRowComponent({
   game,
   index,
@@ -136,12 +189,15 @@ function GameRowComponent({
 }: GameRowProps) {
   const haptics = useHaptics();
   const translateX = useSharedValue(0);
-  const isSwipeTriggered = useSharedValue(false);
+  const currentZone = useSharedValue(0);
+
+  const maxZone = getMaxZone(section);
 
   // Position-based color based on section
   const getColorForSection = () => {
     if (section === 'shortList') return getPositionalGold(index, totalCount);
     if (section === 'completed') return getPositionalGrey(index, totalCount);
+    if (section === 'somedayMaybe') return getPositionalBlue(index, totalCount);
     if (section === 'toPlay') return getPositionalGreen(index, totalCount);
     // Fallback for backward compat (no section prop)
     return game.isCompleted
@@ -151,12 +207,13 @@ function GameRowComponent({
   const color = getColorForSection();
   const gradientProps = getGradientProps(color);
 
-  const handleSwipe = useCallback(() => {
-    if (onSwipe) {
+  const handleSwipeAction = useCallback((zone: number) => {
+    if (onSwipe && zone > 0) {
       haptics.light();
-      onSwipe(game.id);
+      const action = getSwipeAction(zone, section);
+      onSwipe(game.id, action);
     }
-  }, [onSwipe, game.id, haptics]);
+  }, [onSwipe, game.id, haptics, section]);
 
   const handleInfo = useCallback(() => {
     if (onInfo) {
@@ -165,45 +222,81 @@ function GameRowComponent({
     }
   }, [onInfo, game.id, haptics]);
 
+  // Compute zone from translation
+  const computeZone = useCallback((translationX: number): number => {
+    if (translationX >= SWIPE_ZONE_3 && maxZone >= 3) return 3;
+    if (translationX >= SWIPE_ZONE_2 && maxZone >= 2) return 2;
+    if (translationX >= SWIPE_ZONE_1) return 1;
+    return 0;
+  }, [maxZone]);
+
   // Pan gesture for swipe
   const panGesture = Gesture.Pan()
-    .activeOffsetX(10) // Only activate after 10px horizontal movement
-    .failOffsetY([-30, 30]) // Fail if vertical movement exceeds 30px (more forgiving)
-    .maxPointers(1) // Single finger only
+    .activeOffsetX(10)
+    .failOffsetY([-30, 30])
+    .maxPointers(1)
     .onUpdate((event) => {
-      // Only allow right swipe
       if (event.translationX > 0) {
         translateX.value = event.translationX;
 
-        // Trigger haptic when crossing threshold
-        if (event.translationX > SWIPE_THRESHOLD && !isSwipeTriggered.value) {
-          isSwipeTriggered.value = true;
+        const newZone = event.translationX >= SWIPE_ZONE_3 && maxZone >= 3 ? 3
+          : event.translationX >= SWIPE_ZONE_2 && maxZone >= 2 ? 2
+          : event.translationX >= SWIPE_ZONE_1 ? 1
+          : 0;
+
+        if (newZone !== currentZone.value) {
+          currentZone.value = newZone;
           runOnJS(haptics.selection)();
-        } else if (event.translationX < SWIPE_THRESHOLD && isSwipeTriggered.value) {
-          isSwipeTriggered.value = false;
         }
       }
     })
     .onEnd((event) => {
-      if (event.translationX > SWIPE_THRESHOLD) {
-        // Snap back and trigger callback - LayoutAnimation handles the move
+      const finalZone = currentZone.value;
+      if (finalZone > 0) {
         translateX.value = withTiming(0, { duration: 150 });
-        runOnJS(handleSwipe)();
+        runOnJS(handleSwipeAction)(finalZone);
       } else {
-        // Spring back
         translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
-      isSwipeTriggered.value = false;
+      currentZone.value = 0;
     });
-
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
 
-  const swipeIndicatorStyle = useAnimatedStyle(() => ({
-    opacity: Math.min(translateX.value / SWIPE_THRESHOLD, 1),
+  // Zone 1 indicator (green)
+  const zone1Style = useAnimatedStyle(() => ({
+    opacity: translateX.value >= SWIPE_ZONE_1 ? 1 : Math.min(translateX.value / SWIPE_ZONE_1, 1),
   }));
+
+  // Zone 2 indicator (blue, replaces zone 1)
+  const zone2Style = useAnimatedStyle(() => {
+    if (maxZone < 2) return { opacity: 0 };
+    return {
+      opacity: translateX.value >= SWIPE_ZONE_2
+        ? 1
+        : translateX.value >= SWIPE_ZONE_1
+          ? (translateX.value - SWIPE_ZONE_1) / (SWIPE_ZONE_2 - SWIPE_ZONE_1)
+          : 0,
+    };
+  });
+
+  // Zone 3 indicator (blue, replaces zone 2)
+  const zone3Style = useAnimatedStyle(() => {
+    if (maxZone < 3) return { opacity: 0 };
+    return {
+      opacity: translateX.value >= SWIPE_ZONE_3
+        ? 1
+        : translateX.value >= SWIPE_ZONE_2
+          ? (translateX.value - SWIPE_ZONE_2) / (SWIPE_ZONE_3 - SWIPE_ZONE_2)
+          : 0,
+    };
+  });
+
+  const zone1Icon = getZoneIcon(1, section);
+  const zone2Icon = getZoneIcon(2, section);
+  const zone3Icon = getZoneIcon(3, section);
 
   return (
     <GestureDetector gesture={panGesture}>
@@ -213,12 +306,20 @@ function GameRowComponent({
         exiting={FadeOut.duration(200)}
         layout={Layout.springify().damping(15).stiffness(100)}
       >
-        {/* Swipe indicator behind the row */}
-        <Animated.View style={[styles.swipeIndicator, swipeIndicatorStyle]}>
-          <Text style={styles.swipeIndicatorText}>
-            {game.isCompleted ? '↩' : '✓'}
-          </Text>
+        {/* Swipe indicators behind the row (stacked, higher zones on top) */}
+        <Animated.View style={[styles.swipeIndicator, { backgroundColor: getZoneColor(1) }, zone1Style]}>
+          <Text style={styles.swipeIndicatorText}>{zone1Icon}</Text>
         </Animated.View>
+        {maxZone >= 2 && (
+          <Animated.View style={[styles.swipeIndicator, { backgroundColor: getZoneColor(2) }, zone2Style]}>
+            <Text style={styles.swipeIndicatorText}>{zone2Icon}</Text>
+          </Animated.View>
+        )}
+        {maxZone >= 3 && (
+          <Animated.View style={[styles.swipeIndicator, { backgroundColor: getZoneColor(3) }, zone3Style]}>
+            <Text style={styles.swipeIndicatorText}>{zone3Icon}</Text>
+          </Animated.View>
+        )}
         <Animated.View style={[styles.rowContent, animatedStyle, isDragging && styles.dragging]}>
           {/* Gradient background layer */}
           <LinearGradient {...gradientProps} style={styles.gradientBackground} />

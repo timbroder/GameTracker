@@ -138,6 +138,8 @@ export async function toggleCompleted(id: string): Promise<Game> {
     sortOrder: isNowCompleted ? game.sortOrder : getNextSortOrder(games),
     // Clear short list status when completing
     isShortListed: isNowCompleted ? false : game.isShortListed,
+    // When completing, clear someday maybe. When un-completing, default to someday maybe.
+    isSomedayMaybe: isNowCompleted ? false : true,
   };
 
   games[index] = updatedGame;
@@ -207,6 +209,8 @@ export async function toggleShortList(id: string): Promise<Game> {
   const updatedGame: Game = {
     ...game,
     isShortListed: isNowShortListed,
+    // Clear someday maybe when adding to short list
+    isSomedayMaybe: isNowShortListed ? false : game.isSomedayMaybe,
     sortOrder: newSortOrder,
   };
 
@@ -216,13 +220,15 @@ export async function toggleShortList(id: string): Promise<Game> {
 }
 
 /**
- * Reorder games with Short List and To Play sections
+ * Reorder games with Short List, To Play, and Someday Maybe sections
  * @param shortListIds - Array of game IDs in Short List order
  * @param toPlayIds - Array of game IDs in To Play order
+ * @param somedayMaybeIds - Array of game IDs in Someday Maybe order
  */
 export async function reorderWithSections(
   shortListIds: string[],
   toPlayIds: string[],
+  somedayMaybeIds: string[] = [],
 ): Promise<void> {
   const games = await loadGames();
   const gameMap = new Map(games.map((g) => [g.id, g]));
@@ -231,6 +237,7 @@ export async function reorderWithSections(
     const game = gameMap.get(id);
     if (game) {
       game.isShortListed = true;
+      game.isSomedayMaybe = false;
       game.sortOrder = index;
     }
   });
@@ -239,12 +246,101 @@ export async function reorderWithSections(
     const game = gameMap.get(id);
     if (game) {
       game.isShortListed = false;
+      game.isSomedayMaybe = false;
+      game.sortOrder = index;
+    }
+  });
+
+  somedayMaybeIds.forEach((id, index) => {
+    const game = gameMap.get(id);
+    if (game) {
+      game.isShortListed = false;
+      game.isSomedayMaybe = true;
       game.sortOrder = index;
     }
   });
 
   const updatedGames = Array.from(gameMap.values());
   await saveGames(updatedGames);
+}
+
+/**
+ * Move a game to a specific section
+ * @param id - Game ID
+ * @param targetSection - Target section: 'shortList' | 'toPlay' | 'somedayMaybe' | 'completed'
+ */
+export type GameSection = 'shortList' | 'toPlay' | 'somedayMaybe' | 'completed';
+
+export async function moveGameToSection(
+  id: string,
+  targetSection: GameSection,
+): Promise<Game> {
+  const games = await loadGames();
+  const index = games.findIndex((g) => g.id === id);
+
+  if (index === -1) {
+    throw new Error(`Game with id ${id} not found`);
+  }
+
+  const game = games[index];
+
+  // Compute new flags and sort order based on target section
+  let isCompleted = false;
+  let isShortListed = false;
+  let isSomedayMaybe = false;
+  let completedDate = game.completedDate;
+  let sortOrder = game.sortOrder;
+
+  switch (targetSection) {
+    case 'shortList': {
+      isShortListed = true;
+      const shortListGames = games.filter((g) => !g.isCompleted && g.isShortListed);
+      sortOrder = shortListGames.length > 0
+        ? Math.max(...shortListGames.map((g) => g.sortOrder)) + 1
+        : 0;
+      completedDate = undefined;
+      break;
+    }
+    case 'toPlay': {
+      const toPlayGames = games.filter(
+        (g) => !g.isCompleted && !g.isShortListed && !g.isSomedayMaybe
+      );
+      sortOrder = toPlayGames.length > 0
+        ? Math.max(...toPlayGames.map((g) => g.sortOrder)) + 1
+        : 0;
+      completedDate = undefined;
+      break;
+    }
+    case 'somedayMaybe': {
+      isSomedayMaybe = true;
+      const somedayGames = games.filter(
+        (g) => !g.isCompleted && !g.isShortListed && g.isSomedayMaybe
+      );
+      sortOrder = somedayGames.length > 0
+        ? Math.max(...somedayGames.map((g) => g.sortOrder)) + 1
+        : 0;
+      completedDate = undefined;
+      break;
+    }
+    case 'completed': {
+      isCompleted = true;
+      completedDate = new Date().toISOString();
+      break;
+    }
+  }
+
+  const updatedGame: Game = {
+    ...game,
+    isCompleted,
+    isShortListed,
+    isSomedayMaybe,
+    completedDate,
+    sortOrder,
+  };
+
+  games[index] = updatedGame;
+  await saveGames(games);
+  return updatedGame;
 }
 
 /**

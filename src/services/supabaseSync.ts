@@ -40,6 +40,7 @@ interface GameRow {
   date_added: string;
   color_index: number;
   is_short_listed: boolean | null;
+  is_someday_maybe: boolean | null;
   updated_at: string;
 }
 
@@ -125,6 +126,7 @@ function gameToRow(game: Game, userId: string): Omit<GameRow, 'updated_at'> {
     date_added: game.dateAdded,
     color_index: game.colorIndex,
     is_short_listed: game.isShortListed || false,
+    is_someday_maybe: game.isSomedayMaybe || false,
   };
 }
 
@@ -147,6 +149,7 @@ function rowToGame(row: GameRow): Game {
     dateAdded: row.date_added,
     colorIndex: row.color_index,
     isShortListed: row.is_short_listed || false,
+    isSomedayMaybe: row.is_someday_maybe || false,
   };
 }
 

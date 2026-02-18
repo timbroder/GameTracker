@@ -13,7 +13,9 @@ import {
   reorderGames as reorderGamesService,
   reorderWithSections as reorderWithSectionsService,
   toggleShortList as toggleShortListService,
+  moveGameToSection as moveGameToSectionService,
   type NewGameInput,
+  type GameSection,
 } from '../services/gameManager';
 import { sortGames, type SortedGames } from '../utils/sorting';
 
@@ -31,8 +33,9 @@ export interface UseGamesActions {
   deleteGame: (id: string) => Promise<void>;
   toggleCompleted: (id: string) => Promise<Game>;
   reorderGames: (reorderedIds: string[]) => Promise<void>;
-  reorderWithSections: (shortListIds: string[], toPlayIds: string[]) => Promise<void>;
+  reorderWithSections: (shortListIds: string[], toPlayIds: string[], somedayMaybeIds?: string[]) => Promise<void>;
   toggleShortList: (id: string) => Promise<Game>;
+  moveGameToSection: (id: string, targetSection: GameSection) => Promise<Game>;
   clearError: () => void;
 }
 
@@ -143,12 +146,12 @@ export function useGames(): UseGamesReturn {
     []
   );
 
-  // Reorder with Short List and To Play sections
+  // Reorder with Short List, To Play, and Someday Maybe sections
   const reorderWithSections = useCallback(
-    async (shortListIds: string[], toPlayIds: string[]): Promise<void> => {
+    async (shortListIds: string[], toPlayIds: string[], somedayMaybeIds: string[] = []): Promise<void> => {
       setError(null);
       try {
-        await reorderWithSectionsService(shortListIds, toPlayIds);
+        await reorderWithSectionsService(shortListIds, toPlayIds, somedayMaybeIds);
         const loadedGames = await getGames();
         setGames(loadedGames);
       } catch (err) {
@@ -176,6 +179,25 @@ export function useGames(): UseGamesReturn {
     }
   }, []);
 
+  // Move game to a specific section
+  const moveGameToSection = useCallback(
+    async (id: string, targetSection: GameSection): Promise<Game> => {
+      setError(null);
+      try {
+        const updatedGame = await moveGameToSectionService(id, targetSection);
+        setGames((prev) =>
+          prev.map((game) => (game.id === id ? updatedGame : game))
+        );
+        return updatedGame;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to move game';
+        setError(message);
+        throw err;
+      }
+    },
+    []
+  );
+
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
@@ -199,6 +221,7 @@ export function useGames(): UseGamesReturn {
     reorderGames,
     reorderWithSections,
     toggleShortList,
+    moveGameToSection,
     clearError,
   };
 }
