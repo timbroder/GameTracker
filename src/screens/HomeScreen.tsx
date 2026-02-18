@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Alert, Keyboard, LayoutAnimation } from 'react-native';
+import { View, StyleSheet, Alert, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { GameList, EditModal, SearchBar, SearchResults } from '../components';
@@ -165,13 +165,17 @@ export function HomeScreen() {
    */
   const sectionOrder: GameSection[] = ['completed', 'somedayMaybe', 'toPlay', 'shortList'];
 
+  // Use refs for values accessed in handleSwipe to avoid recreating the callback
+  const gamesRef = useRef(games);
+  gamesRef.current = games;
+  const shortListLengthRef = useRef(sortedGames.shortList.length);
+  shortListLengthRef.current = sortedGames.shortList.length;
+
   const handleSwipe = useCallback(
     async (gameId: string, action: SwipeAction) => {
       try {
-        const game = games.find((g) => g.id === gameId);
+        const game = gamesRef.current.find((g) => g.id === gameId);
         if (!game) return;
-
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 
         if (action === 'completed') {
           await toggleCompleted(gameId);
@@ -188,7 +192,7 @@ export function HomeScreen() {
           const targetIdx = Math.min(currentIdx + steps, sectionOrder.length - 1);
           const targetSection = sectionOrder[targetIdx];
 
-          if (targetSection === 'shortList' && sortedGames.shortList.length >= 5) {
+          if (targetSection === 'shortList' && shortListLengthRef.current >= 5) {
             Alert.alert('Short List Full', 'Remove a game from the Short List first (max 5).');
             return;
           }
@@ -208,18 +212,18 @@ export function HomeScreen() {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [games, toggleCompleted, moveGameToSection, getGameSection, supabaseSync, sortedGames.shortList.length]
+    [toggleCompleted, moveGameToSection, getGameSection, supabaseSync]
   );
 
   const handleInfo = useCallback(
     (gameId: string) => {
-      const game = games.find((g) => g.id === gameId);
+      const game = gamesRef.current.find((g) => g.id === gameId);
       if (game) {
         setEditingGame(game);
         setIsEditModalVisible(true);
       }
     },
-    [games]
+    []
   );
 
   const handleCloseEditModal = useCallback(() => {
@@ -254,9 +258,9 @@ export function HomeScreen() {
   const handleToggleSomedayMaybe = useCallback(
     async (gameId: string) => {
       try {
-        const game = games.find((g) => g.id === gameId);
+        const game = gamesRef.current.find((g) => g.id === gameId);
         if (!game) return;
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
         const targetSection = game.isSomedayMaybe ? 'toPlay' : 'somedayMaybe';
         await moveGameToSection(gameId, targetSection as GameSection);
         supabaseSync.syncAfterChange();
@@ -264,13 +268,13 @@ export function HomeScreen() {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [games, moveGameToSection, supabaseSync]
+    [moveGameToSection, supabaseSync]
   );
 
   const handleToggleShortList = useCallback(
     async (gameId: string) => {
       try {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
         await toggleShortList(gameId);
         supabaseSync.syncAfterChange();
       } catch (err) {

@@ -220,8 +220,11 @@ function lightenColor(hex: string, percent: number): string {
  * @param total - Total number of items in the list
  */
 export function getPositionalGreen(index: number, total: number): GradientColor {
-  return getCachedColor(`green-${index}-${total}`, () => {
-    const factor = total > 1 ? index / (total - 1) : 0;
+  // Use quantized ratio (2 decimal places) as cache key so reorders
+  // that barely change a row's position get cache hits
+  const factor = total > 1 ? index / (total - 1) : 0;
+  const quantized = Math.round(factor * 100);
+  return getCachedColor(`green-${quantized}`, () => {
     const baseColor = interpolateColor(GREEN_GRADIENT.dark, GREEN_GRADIENT.light, factor);
     return {
       primary: darkenColor(baseColor, 0.08),
@@ -237,8 +240,9 @@ export function getPositionalGreen(index: number, total: number): GradientColor 
  * @param total - Total number of completed items
  */
 export function getPositionalGrey(index: number, total: number): GradientColor {
-  return getCachedColor(`grey-${index}-${total}`, () => {
-    const factor = total > 1 ? index / (total - 1) : 0;
+  const factor = total > 1 ? index / (total - 1) : 0;
+  const quantized = Math.round(factor * 100);
+  return getCachedColor(`grey-${quantized}`, () => {
     const baseColor = interpolateColor(GREY_GRADIENT.dark, GREY_GRADIENT.light, factor);
     return {
       primary: darkenColor(baseColor, 0.08),
@@ -254,8 +258,9 @@ export function getPositionalGrey(index: number, total: number): GradientColor {
  * @param total - Total number of short list items
  */
 export function getPositionalGold(index: number, total: number): GradientColor {
-  return getCachedColor(`gold-${index}-${total}`, () => {
-    const factor = total > 1 ? index / (total - 1) : 0;
+  const factor = total > 1 ? index / (total - 1) : 0;
+  const quantized = Math.round(factor * 100);
+  return getCachedColor(`gold-${quantized}`, () => {
     const baseColor = interpolateColor(GOLD_GRADIENT.dark, GOLD_GRADIENT.light, factor);
     return {
       primary: darkenColor(baseColor, 0.08),
@@ -271,8 +276,9 @@ export function getPositionalGold(index: number, total: number): GradientColor {
  * @param total - Total number of someday maybe items
  */
 export function getPositionalBlue(index: number, total: number): GradientColor {
-  return getCachedColor(`blue-${index}-${total}`, () => {
-    const factor = total > 1 ? index / (total - 1) : 0;
+  const factor = total > 1 ? index / (total - 1) : 0;
+  const quantized = Math.round(factor * 100);
+  return getCachedColor(`blue-${quantized}`, () => {
     const baseColor = interpolateColor(BLUE_GRADIENT.dark, BLUE_GRADIENT.light, factor);
     return {
       primary: darkenColor(baseColor, 0.08),

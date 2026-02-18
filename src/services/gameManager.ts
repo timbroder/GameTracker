@@ -234,7 +234,7 @@ export async function reorderWithSections(
   shortListIds: string[],
   toPlayIds: string[],
   somedayMaybeIds: string[] = [],
-): Promise<void> {
+): Promise<Game[]> {
   const games = await loadGames();
   const gameMap = new Map(games.map((g) => [g.id, g]));
 
@@ -267,6 +267,7 @@ export async function reorderWithSections(
 
   const updatedGames = Array.from(gameMap.values());
   await saveGames(updatedGames);
+  return updatedGames;
 }
 
 /**

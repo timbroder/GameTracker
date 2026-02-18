@@ -134,9 +134,14 @@ export function useGames(): UseGamesReturn {
       setError(null);
       try {
         await reorderGamesService(reorderedIds);
-        // Reload to get updated sort orders
-        const loadedGames = await getGames();
-        setGames(loadedGames);
+        // Update sort orders in local state without full reload
+        setGames((prev) => {
+          const orderMap = new Map(reorderedIds.map((id, idx) => [id, idx]));
+          return prev.map((game) => {
+            const newOrder = orderMap.get(game.id);
+            return newOrder !== undefined ? { ...game, sortOrder: newOrder } : game;
+          });
+        });
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to reorder games';
         setError(message);
@@ -151,9 +156,8 @@ export function useGames(): UseGamesReturn {
     async (shortListIds: string[], toPlayIds: string[], somedayMaybeIds: string[] = []): Promise<void> => {
       setError(null);
       try {
-        await reorderWithSectionsService(shortListIds, toPlayIds, somedayMaybeIds);
-        const loadedGames = await getGames();
-        setGames(loadedGames);
+        const updatedGames = await reorderWithSectionsService(shortListIds, toPlayIds, somedayMaybeIds);
+        setGames(updatedGames);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to reorder games';
         setError(message);

@@ -241,26 +241,25 @@ export function GameList({
   const keyExtractor = useCallback((item: Game) => item.id, []);
 
   // Footer component with completed games
+  // GameRow is already memo'd, so stable onSwipe/onInfo refs prevent re-renders
+  // of individual rows when the completed array reference changes
   const completedCount = completed.length;
-  const ListFooter = useMemo(() => {
-    if (completedCount === 0) return null;
-    return (
-      <View style={styles.footerContainer}>
-        <SectionHeader title="Completed" count={completedCount} />
-        {completed.map((game, index) => (
-          <GameRow
-            key={game.id}
-            game={game}
-            index={index}
-            totalCount={completedCount}
-            section="completed"
-            onSwipe={onSwipe}
-            onInfo={onInfo}
-          />
-        ))}
-      </View>
-    );
-  }, [completed, completedCount, onSwipe, onInfo]);
+  const ListFooter = completedCount === 0 ? null : (
+    <View style={styles.footerContainer}>
+      <SectionHeader title="Completed" count={completedCount} />
+      {completed.map((game, index) => (
+        <GameRow
+          key={game.id}
+          game={game}
+          index={index}
+          totalCount={completedCount}
+          section="completed"
+          onSwipe={onSwipe}
+          onInfo={onInfo}
+        />
+      ))}
+    </View>
+  );
 
   // Loading state - show skeleton while loading initial data
   if (loading && shortList.length === 0 && unplayed.length === 0 && somedayMaybe.length === 0 && completed.length === 0) {
