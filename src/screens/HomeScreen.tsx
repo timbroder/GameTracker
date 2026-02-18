@@ -193,14 +193,14 @@ export function HomeScreen() {
             return;
           }
 
-          await moveGameToSection(gameId, targetSection);
+          await moveGameToSection(gameId, targetSection, 'bottom');
         } else {
           // Demote: move down in section order (moveDown1 / moveDown2)
           const steps = action === 'moveDown1' ? 1 : 2;
           const targetIdx = Math.max(currentIdx - steps, 0);
           const targetSection = sectionOrder[targetIdx];
 
-          await moveGameToSection(gameId, targetSection);
+          await moveGameToSection(gameId, targetSection, 'top');
         }
 
         supabaseSync.syncAfterChange();

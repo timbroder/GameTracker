@@ -35,7 +35,7 @@ export interface UseGamesActions {
   reorderGames: (reorderedIds: string[]) => Promise<void>;
   reorderWithSections: (shortListIds: string[], toPlayIds: string[], somedayMaybeIds?: string[]) => Promise<void>;
   toggleShortList: (id: string) => Promise<Game>;
-  moveGameToSection: (id: string, targetSection: GameSection) => Promise<Game>;
+  moveGameToSection: (id: string, targetSection: GameSection, position?: 'top' | 'bottom') => Promise<Game>;
   clearError: () => void;
 }
 
@@ -181,10 +181,10 @@ export function useGames(): UseGamesReturn {
 
   // Move game to a specific section
   const moveGameToSection = useCallback(
-    async (id: string, targetSection: GameSection): Promise<Game> => {
+    async (id: string, targetSection: GameSection, position: 'top' | 'bottom' = 'bottom'): Promise<Game> => {
       setError(null);
       try {
-        const updatedGame = await moveGameToSectionService(id, targetSection);
+        const updatedGame = await moveGameToSectionService(id, targetSection, position);
         setGames((prev) =>
           prev.map((game) => (game.id === id ? updatedGame : game))
         );
