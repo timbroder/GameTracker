@@ -31,3 +31,6 @@ export type { SwipeDeckProps } from './SwipeDeck';
 
 export { UndoButton } from './UndoButton';
 export type { UndoButtonProps } from './UndoButton';
+
+export { RawgIdMatcher } from './RawgIdMatcher';
+export type { RawgIdMatcherProps } from './RawgIdMatcher';

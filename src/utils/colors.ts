@@ -146,6 +146,15 @@ const GREEN_GRADIENT = {
 };
 
 /**
+ * Gold/amber gradient range for "Short List" section
+ * Dark goldenrod at top → Gold at bottom
+ */
+const GOLD_GRADIENT = {
+  dark: '#B8860B',    // Darkest gold (top of list)
+  light: '#FFD700',   // Lightest gold (bottom of list)
+};
+
+/**
  * Grey gradient range for "Completed" section
  * Dark charcoal at top → Light silver at bottom
  */
@@ -207,6 +216,26 @@ export function getPositionalGrey(index: number, total: number): GradientColor {
 
   // Base color for this position in the list
   const baseColor = interpolateColor(GREY_GRADIENT.dark, GREY_GRADIENT.light, factor);
+
+  // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
+  return {
+    primary: darkenColor(baseColor, 0.08),   // Top of row: 8% darker
+    secondary: lightenColor(baseColor, 0.05), // Bottom of row: 5% lighter
+  };
+}
+
+/**
+ * Get position-based gold color for "Short List" items
+ * Each row has a subtle inner gradient: darker at top, lighter at bottom
+ * @param index - Item's position in the short list (0-based)
+ * @param total - Total number of short list items
+ */
+export function getPositionalGold(index: number, total: number): GradientColor {
+  // Avoid division by zero; single item gets darkest color
+  const factor = total > 1 ? index / (total - 1) : 0;
+
+  // Base color for this position in the list
+  const baseColor = interpolateColor(GOLD_GRADIENT.dark, GOLD_GRADIENT.light, factor);
 
   // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
   return {

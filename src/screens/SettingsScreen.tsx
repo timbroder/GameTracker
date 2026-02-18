@@ -15,13 +15,31 @@ import {
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { APP_VERSION } from '../config';
 import { exportAndShareCSV } from '../services/csvExport';
+import { importGamesFromCSV, refreshAllImages } from '../services/csvImport';
 import { useSupabaseSync } from '../hooks';
+import { RawgIdMatcher } from '../components';
+import { pick, types } from 'react-native-document-picker';
+import * as gameManager from '../services/gameManager';
+import { saveGames } from '../services/storage';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [matcherVisible, setMatcherVisible] = useState(false);
+  const [unmatchedCount, setUnmatchedCount] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      gameManager.getGames().then(games => {
+        setUnmatchedCount(games.filter(g => g.rawgId === 0).length);
+      });
+    }, []),
+  );
 
   const {
     isAvailable,
@@ -59,15 +77,58 @@ export function SettingsScreen() {
     }
   }, []);
 
+  const handleImport = useCallback(async () => {
+    try {
+      const [result] = await pick({ type: [types.csv] });
+      if (!result?.uri) {
+        return;
+      }
+
+      setIsImporting(true);
+      const importResult = await importGamesFromCSV(result.uri);
+
+      Alert.alert(
+        'Import Complete',
+        `Imported: ${importResult.imported}\nSkipped (duplicates): ${importResult.skipped}${importResult.failed > 0 ? `\nFailed: ${importResult.failed}` : ''}`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to import games';
+      // Don't show error for user cancellation
+      if (!message.includes('cancel')) {
+        Alert.alert('Import Failed', message);
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  }, []);
+
+  const handleRefreshImages = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const result = await refreshAllImages();
+      Alert.alert(
+        'Refresh Complete',
+        `Refreshed: ${result.refreshed} of ${result.total}${result.failed > 0 ? `\nFailed: ${result.failed}` : ''}`,
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to refresh images';
+      Alert.alert('Refresh Failed', message);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.content}
       >
-        {/* Export Section */}
+        {/* Data Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>EXPORT</Text>
+          <Text style={styles.sectionTitle}>DATA</Text>
           <TouchableOpacity
             style={styles.button}
             onPress={handleExport}
@@ -83,9 +144,79 @@ export function SettingsScreen() {
               </>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleImport}
+            disabled={isImporting}
+            activeOpacity={0.7}
+          >
+            {isImporting ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.buttonIcon}>📥</Text>
+                <Text style={styles.buttonText}>Import Games from CSV</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleRefreshImages}
+            disabled={isRefreshing}
+            activeOpacity={0.7}
+          >
+            {isRefreshing ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <Text style={styles.buttonIcon}>🖼️</Text>
+                <Text style={styles.buttonText}>Refresh All Images</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, unmatchedCount === 0 && styles.buttonDisabled]}
+            onPress={() => setMatcherVisible(true)}
+            disabled={unmatchedCount === 0}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonIcon}>🔗</Text>
+            <Text style={styles.buttonText}>Match RAWG IDs</Text>
+            {unmatchedCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unmatchedCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.dangerButton}
+            onPress={() => {
+              Alert.alert(
+                'Delete All Games',
+                'This will permanently remove all games from the app. This cannot be undone. Export first if you want a backup.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete All',
+                    style: 'destructive',
+                    onPress: async () => {
+                      await saveGames([]);
+                      setUnmatchedCount(0);
+                      Alert.alert('Done', 'All games have been deleted.');
+                    },
+                  },
+                ],
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonIcon}>🗑️</Text>
+            <Text style={styles.dangerButtonText}>Delete All Data</Text>
+          </TouchableOpacity>
           <Text style={styles.hint}>
-            Export all games to a CSV file that you can open in Excel or Google
-            Sheets.
+            Export or import games as CSV files. Duplicates are automatically
+            skipped during import. Refresh images re-downloads all box art from
+            RAWG. Match RAWG IDs links imported games to RAWG for image support.
           </Text>
         </View>
 
@@ -153,6 +284,17 @@ export function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <RawgIdMatcher
+        visible={matcherVisible}
+        onClose={() => {
+          setMatcherVisible(false);
+          // Refresh unmatched count
+          gameManager.getGames().then(games => {
+            setUnmatchedCount(games.filter(g => g.rawgId === 0).length);
+          });
+        }}
+      />
     </View>
   );
 }
@@ -193,10 +335,46 @@ const styles = StyleSheet.create({
   buttonIcon: {
     fontSize: 18,
   },
+  buttonDisabled: {
+    opacity: 0.4,
+  },
   buttonText: {
     fontSize: 17,
     fontWeight: '600',
     color: '#FFF',
+  },
+  badge: {
+    backgroundColor: '#4D96FF',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    marginLeft: 4,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  dangerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#2a1a1a',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 10,
+    minHeight: 56,
+    borderWidth: 1,
+    borderColor: '#4a2020',
+  },
+  dangerButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#FF6B6B',
   },
   hint: {
     fontSize: 13,

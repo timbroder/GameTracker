@@ -11,6 +11,8 @@ import {
   deleteGame as deleteGameService,
   toggleCompleted as toggleCompletedService,
   reorderGames as reorderGamesService,
+  reorderWithSections as reorderWithSectionsService,
+  toggleShortList as toggleShortListService,
   type NewGameInput,
 } from '../services/gameManager';
 import { sortGames, type SortedGames } from '../utils/sorting';
@@ -29,6 +31,8 @@ export interface UseGamesActions {
   deleteGame: (id: string) => Promise<void>;
   toggleCompleted: (id: string) => Promise<Game>;
   reorderGames: (reorderedIds: string[]) => Promise<void>;
+  reorderWithSections: (shortListIds: string[], toPlayIds: string[]) => Promise<void>;
+  toggleShortList: (id: string) => Promise<Game>;
   clearError: () => void;
 }
 
@@ -139,6 +143,39 @@ export function useGames(): UseGamesReturn {
     []
   );
 
+  // Reorder with Short List and To Play sections
+  const reorderWithSections = useCallback(
+    async (shortListIds: string[], toPlayIds: string[]): Promise<void> => {
+      setError(null);
+      try {
+        await reorderWithSectionsService(shortListIds, toPlayIds);
+        const loadedGames = await getGames();
+        setGames(loadedGames);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to reorder games';
+        setError(message);
+        throw err;
+      }
+    },
+    []
+  );
+
+  // Toggle short list status
+  const toggleShortList = useCallback(async (id: string): Promise<Game> => {
+    setError(null);
+    try {
+      const updatedGame = await toggleShortListService(id);
+      setGames((prev) =>
+        prev.map((game) => (game.id === id ? updatedGame : game))
+      );
+      return updatedGame;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to toggle short list';
+      setError(message);
+      throw err;
+    }
+  }, []);
+
   // Clear error
   const clearError = useCallback(() => {
     setError(null);
@@ -160,6 +197,8 @@ export function useGames(): UseGamesReturn {
     deleteGame,
     toggleCompleted,
     reorderGames,
+    reorderWithSections,
+    toggleShortList,
     clearError,
   };
 }

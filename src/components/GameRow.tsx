@@ -28,6 +28,7 @@ import {
   getGradientProps,
   getPositionalGreen,
   getPositionalGrey,
+  getPositionalGold,
 } from '../utils/colors';
 import { useHaptics } from '../hooks/useHaptics';
 
@@ -59,6 +60,7 @@ export interface GameRowProps {
   game: Game;
   index: number;      // Position in the list (0-based)
   totalCount: number; // Total items in this section
+  section?: 'shortList' | 'toPlay' | 'completed';
   onSwipe?: (gameId: string) => void;
   onInfo?: (gameId: string) => void;
   isDragging?: boolean;
@@ -127,6 +129,7 @@ function GameRowComponent({
   game,
   index,
   totalCount,
+  section,
   onSwipe,
   onInfo,
   isDragging = false,
@@ -135,10 +138,17 @@ function GameRowComponent({
   const translateX = useSharedValue(0);
   const isSwipeTriggered = useSharedValue(false);
 
-  // Position-based color: green gradient for "To Play", grey gradient for "Completed"
-  const color = game.isCompleted
-    ? getPositionalGrey(index, totalCount)
-    : getPositionalGreen(index, totalCount);
+  // Position-based color based on section
+  const getColorForSection = () => {
+    if (section === 'shortList') return getPositionalGold(index, totalCount);
+    if (section === 'completed') return getPositionalGrey(index, totalCount);
+    if (section === 'toPlay') return getPositionalGreen(index, totalCount);
+    // Fallback for backward compat (no section prop)
+    return game.isCompleted
+      ? getPositionalGrey(index, totalCount)
+      : getPositionalGreen(index, totalCount);
+  };
+  const color = getColorForSection();
   const gradientProps = getGradientProps(color);
 
   const handleSwipe = useCallback(() => {

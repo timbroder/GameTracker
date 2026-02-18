@@ -4,6 +4,7 @@
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, Keyboard } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { GameList, EditModal, SearchBar, SearchResults } from '../components';
 import { useGames, useSupabaseSync } from '../hooks';
@@ -12,6 +13,7 @@ import { addGame as addGameService, gameExists } from '../services/gameManager';
 import type { Game, GameSearchResult, Platform } from '../types';
 
 export function HomeScreen() {
+  const insets = useSafeAreaInsets();
   const {
     games,
     sortedGames,
@@ -19,7 +21,8 @@ export function HomeScreen() {
     error,
     loadGames,
     toggleCompleted,
-    reorderGames,
+    reorderWithSections,
+    toggleShortList,
     deleteGame,
   } = useGames();
 
@@ -132,15 +135,15 @@ export function HomeScreen() {
   }, []);
 
   const handleReorder = useCallback(
-    async (reorderedIds: string[]) => {
+    async (shortListIds: string[], toPlayIds: string[]) => {
       try {
-        await reorderGames(reorderedIds);
+        await reorderWithSections(shortListIds, toPlayIds);
         supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to reorder games');
       }
     },
-    [reorderGames, supabaseSync]
+    [reorderWithSections, supabaseSync]
   );
 
   const handleSwipe = useCallback(
@@ -195,8 +198,20 @@ export function HomeScreen() {
     [toggleCompleted, supabaseSync]
   );
 
+  const handleToggleShortList = useCallback(
+    async (gameId: string) => {
+      try {
+        await toggleShortList(gameId);
+        supabaseSync.syncAfterChange();
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update short list');
+      }
+    },
+    [toggleShortList, supabaseSync]
+  );
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Game list */}
       <GameList
         sortedGames={sortedGames}
@@ -231,9 +246,11 @@ export function HomeScreen() {
       <EditModal
         game={editingGame}
         visible={isEditModalVisible}
+        shortListCount={sortedGames.shortList.length}
         onClose={handleCloseEditModal}
         onDelete={handleDeleteGame}
         onToggleCompleted={handleToggleCompletedFromModal}
+        onToggleShortList={handleToggleShortList}
       />
     </View>
   );

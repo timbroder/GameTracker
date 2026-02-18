@@ -15,6 +15,7 @@ module.exports = {
     '^./secrets$': '<rootDir>/src/config/__mocks__/secrets.ts',
     '^react-native-share$': '<rootDir>/__mocks__/react-native-share.js',
     '^react-native-fs$': '<rootDir>/__mocks__/react-native-fs.js',
+    '^react-native-document-picker$': '<rootDir>/__mocks__/react-native-document-picker.js',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
