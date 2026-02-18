@@ -186,18 +186,8 @@ function getLeftZoneIcon(zone: number): string {
   return '⇊';
 }
 
-/**
- * Get the right-swipe zone color
- * Zone 1 = green (complete/un-complete), Zones 2-3 = blue (promote)
- */
-function getRightZoneColor(zone: number): string {
-  return zone === 1 ? '#4CAF50' : '#1A237E';
-}
-
-/**
- * Left-swipe zone color: orange/red for demote
- */
-const LEFT_ZONE_COLOR = '#E65100';
+const ACTIVE_ZONE_COLOR = '#4CAF50';   // Green for active zone
+const INACTIVE_ZONE_COLOR = '#1C1C1E'; // Dark/black for inactive zones
 
 /**
  * Determine right-swipe action from zone
@@ -312,53 +302,27 @@ function GameRowComponent({
     transform: [{ translateX: translateX.value }],
   }));
 
-  // === Right swipe indicators (left side, promote) ===
-  const rightZone1Style = useAnimatedStyle(() => ({
-    opacity: translateX.value >= SWIPE_ZONE_1 ? 1 : Math.max(0, Math.min(translateX.value / SWIPE_ZONE_1, 1)),
+  // === Right swipe zone backgrounds (highlight active zone green) ===
+  const rightZone1Bg = useAnimatedStyle(() => ({
+    backgroundColor: currentZone.value === 1 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
   }));
 
-  const rightZone2Style = useAnimatedStyle(() => {
-    if (maxRightZone < 2) return { opacity: 0 };
-    return {
-      opacity: translateX.value >= SWIPE_ZONE_2
-        ? 1
-        : translateX.value >= SWIPE_ZONE_1
-          ? (translateX.value - SWIPE_ZONE_1) / (SWIPE_ZONE_2 - SWIPE_ZONE_1)
-          : 0,
-    };
-  });
+  const rightZone2Bg = useAnimatedStyle(() => ({
+    backgroundColor: currentZone.value === 2 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
+  }));
 
-  const rightZone3Style = useAnimatedStyle(() => {
-    if (maxRightZone < 3) return { opacity: 0 };
-    return {
-      opacity: translateX.value >= SWIPE_ZONE_3
-        ? 1
-        : translateX.value >= SWIPE_ZONE_2
-          ? (translateX.value - SWIPE_ZONE_2) / (SWIPE_ZONE_3 - SWIPE_ZONE_2)
-          : 0,
-    };
-  });
+  const rightZone3Bg = useAnimatedStyle(() => ({
+    backgroundColor: currentZone.value === 3 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
+  }));
 
-  // === Left swipe indicators (right side, demote) ===
-  const leftZone1Style = useAnimatedStyle(() => {
-    if (maxLeftZone < 1) return { opacity: 0 };
-    const absTx = Math.abs(Math.min(translateX.value, 0));
-    return {
-      opacity: absTx >= SWIPE_ZONE_1 ? 1 : Math.min(absTx / SWIPE_ZONE_1, 1),
-    };
-  });
+  // === Left swipe zone backgrounds (highlight active zone green) ===
+  const leftZone1Bg = useAnimatedStyle(() => ({
+    backgroundColor: currentZone.value === -1 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
+  }));
 
-  const leftZone2Style = useAnimatedStyle(() => {
-    if (maxLeftZone < 2) return { opacity: 0 };
-    const absTx = Math.abs(Math.min(translateX.value, 0));
-    return {
-      opacity: absTx >= SWIPE_ZONE_2
-        ? 1
-        : absTx >= SWIPE_ZONE_1
-          ? (absTx - SWIPE_ZONE_1) / (SWIPE_ZONE_2 - SWIPE_ZONE_1)
-          : 0,
-    };
-  });
+  const leftZone2Bg = useAnimatedStyle(() => ({
+    backgroundColor: currentZone.value === -2 ? ACTIVE_ZONE_COLOR : INACTIVE_ZONE_COLOR,
+  }));
 
   const rIcon1 = getRightZoneIcon(1, section);
   const rIcon2 = getRightZoneIcon(2, section);
@@ -374,31 +338,35 @@ function GameRowComponent({
         exiting={FadeOut.duration(200)}
         layout={Layout.springify().damping(15).stiffness(100)}
       >
-        {/* Right-swipe indicators (left side, promote/complete) */}
-        <Animated.View style={[styles.swipeIndicatorLeft, { backgroundColor: getRightZoneColor(1) }, rightZone1Style]}>
-          <Text style={styles.swipeIndicatorText}>{rIcon1}</Text>
-        </Animated.View>
-        {maxRightZone >= 2 && (
-          <Animated.View style={[styles.swipeIndicatorLeft, { backgroundColor: getRightZoneColor(2) }, rightZone2Style]}>
-            <Text style={styles.swipeIndicatorText}>{rIcon2}</Text>
+        {/* Right-swipe indicators (left side, side-by-side) */}
+        <View style={styles.rightSwipeContainer}>
+          <Animated.View style={[styles.swipeIcon, rightZone1Bg]}>
+            <Text style={styles.swipeIconText}>{rIcon1}</Text>
           </Animated.View>
-        )}
-        {maxRightZone >= 3 && (
-          <Animated.View style={[styles.swipeIndicatorLeft, { backgroundColor: getRightZoneColor(3) }, rightZone3Style]}>
-            <Text style={styles.swipeIndicatorText}>{rIcon3}</Text>
-          </Animated.View>
-        )}
+          {maxRightZone >= 2 && (
+            <Animated.View style={[styles.swipeIcon, rightZone2Bg]}>
+              <Text style={styles.swipeIconText}>{rIcon2}</Text>
+            </Animated.View>
+          )}
+          {maxRightZone >= 3 && (
+            <Animated.View style={[styles.swipeIcon, rightZone3Bg]}>
+              <Text style={styles.swipeIconText}>{rIcon3}</Text>
+            </Animated.View>
+          )}
+        </View>
 
-        {/* Left-swipe indicators (right side, demote) */}
+        {/* Left-swipe indicators (right side, side-by-side) */}
         {maxLeftZone >= 1 && (
-          <Animated.View style={[styles.swipeIndicatorRight, { backgroundColor: LEFT_ZONE_COLOR }, leftZone1Style]}>
-            <Text style={styles.swipeIndicatorText}>{lIcon1}</Text>
-          </Animated.View>
-        )}
-        {maxLeftZone >= 2 && (
-          <Animated.View style={[styles.swipeIndicatorRight, { backgroundColor: LEFT_ZONE_COLOR }, leftZone2Style]}>
-            <Text style={styles.swipeIndicatorText}>{lIcon2}</Text>
-          </Animated.View>
+          <View style={styles.leftSwipeContainer}>
+            {maxLeftZone >= 2 && (
+              <Animated.View style={[styles.swipeIcon, leftZone2Bg]}>
+                <Text style={styles.swipeIconText}>{lIcon2}</Text>
+              </Animated.View>
+            )}
+            <Animated.View style={[styles.swipeIcon, leftZone1Bg]}>
+              <Text style={styles.swipeIconText}>{lIcon1}</Text>
+            </Animated.View>
+          </View>
         )}
 
         <Animated.View style={[styles.rowContent, animatedStyle, isDragging && styles.dragging]}>
@@ -454,28 +422,26 @@ const styles = StyleSheet.create({
   rowContent: {
     flex: 1,
   },
-  swipeIndicatorLeft: {
+  rightSwipeContainer: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
-    width: 80,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 0,
+    flexDirection: 'row',
   },
-  swipeIndicatorRight: {
+  leftSwipeContainer: {
     position: 'absolute',
     right: 0,
     top: 0,
     bottom: 0,
-    width: 80,
+    flexDirection: 'row',
+  },
+  swipeIcon: {
+    width: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 0,
   },
-  swipeIndicatorText: {
+  swipeIconText: {
     fontSize: 28,
     color: '#FFF',
   },
