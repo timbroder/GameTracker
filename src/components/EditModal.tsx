@@ -5,7 +5,7 @@
  * Allows viewing game info and deleting the game.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -97,19 +97,20 @@ export function EditModal({
     return null;
   }
 
-  // Use section-based colors: darkest shade (index 0, total 1) for the header
-  const getHeaderColor = () => {
-    if (game.isCompleted) return getPositionalGrey(0, 1);
-    if (game.isShortListed) return getPositionalGold(0, 1);
-    if (game.isSomedayMaybe) return getPositionalBlue(0, 1);
-    return getPositionalGreen(0, 1);
-  };
-  const gradientProps = getGradientProps(getHeaderColor());
+  // Memoize gradient to avoid recomputing on every render
+  const gradientProps = useMemo(() => {
+    let headerColor;
+    if (game.isCompleted) headerColor = getPositionalGrey(0, 1);
+    else if (game.isShortListed) headerColor = getPositionalGold(0, 1);
+    else if (game.isSomedayMaybe) headerColor = getPositionalBlue(0, 1);
+    else headerColor = getPositionalGreen(0, 1);
+    return getGradientProps(headerColor);
+  }, [game.isCompleted, game.isShortListed, game.isSomedayMaybe]);
 
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >

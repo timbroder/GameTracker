@@ -7,7 +7,7 @@ import { RAWG_API_KEY, SUPABASE_URL, SUPABASE_ANON_KEY, SYNC_USER_ID_DEV, SYNC_U
 /**
  * App version - bump this when deploying OTA updates
  */
-export const APP_VERSION = '1.0.44';
+export const APP_VERSION = '1.0.45';
 
 let rawgApiKey: string | null = RAWG_API_KEY;
 
