@@ -177,20 +177,30 @@ export function HomeScreen() {
           return;
         }
 
-        // moveUp1 or moveUp2
         const currentSection = getGameSection(game);
         const currentIdx = sectionOrder.indexOf(currentSection);
-        const steps = action === 'moveUp1' ? 1 : 2;
-        const targetIdx = Math.min(currentIdx + steps, sectionOrder.length - 1);
-        const targetSection = sectionOrder[targetIdx];
 
-        // Check Short List capacity
-        if (targetSection === 'shortList' && sortedGames.shortList.length >= 5) {
-          Alert.alert('Short List Full', 'Remove a game from the Short List first (max 5).');
-          return;
+        if (action === 'moveUp1' || action === 'moveUp2') {
+          // Promote: move up in section order
+          const steps = action === 'moveUp1' ? 1 : 2;
+          const targetIdx = Math.min(currentIdx + steps, sectionOrder.length - 1);
+          const targetSection = sectionOrder[targetIdx];
+
+          if (targetSection === 'shortList' && sortedGames.shortList.length >= 5) {
+            Alert.alert('Short List Full', 'Remove a game from the Short List first (max 5).');
+            return;
+          }
+
+          await moveGameToSection(gameId, targetSection);
+        } else {
+          // Demote: move down in section order (moveDown1 / moveDown2)
+          const steps = action === 'moveDown1' ? 1 : 2;
+          const targetIdx = Math.max(currentIdx - steps, 0);
+          const targetSection = sectionOrder[targetIdx];
+
+          await moveGameToSection(gameId, targetSection);
         }
 
-        await moveGameToSection(gameId, targetSection);
         supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to update game');

@@ -57,7 +57,7 @@ function formatCompletedDate(isoDate: string): string {
   return dateStr;
 }
 
-export type SwipeAction = 'completed' | 'moveUp1' | 'moveUp2';
+export type SwipeAction = 'completed' | 'moveUp1' | 'moveUp2' | 'moveDown1' | 'moveDown2';
 
 export interface GameRowProps {
   game: Game;
@@ -131,13 +131,13 @@ function InfoButton({ onPress }: { onPress: () => void }) {
  * GameRow component with gestures
  */
 /**
- * Get the maximum zone available for a given section
+ * Get the maximum RIGHT swipe zone for a given section (promote / complete)
  * Short List: zone 1 only (completed)
  * To Play: zones 1-2 (completed, Short List)
  * Someday Maybe: zones 1-3 (completed, To Play, Short List)
  * Completed: zones 1-3 (un-complete to Someday Maybe, To Play, Short List)
  */
-function getMaxZone(section?: string): number {
+function getMaxRightZone(section?: string): number {
   switch (section) {
     case 'shortList': return 1;
     case 'toPlay': return 2;
@@ -148,9 +148,26 @@ function getMaxZone(section?: string): number {
 }
 
 /**
- * Get the icon for a given zone and section
+ * Get the maximum LEFT swipe zone for a given section (demote)
+ * Short List: zones 1-2 (↓ To Play, ⇊ Someday Maybe)
+ * To Play: zone 1 (↓ Someday Maybe)
+ * Someday Maybe: 0 (already lowest non-completed)
+ * Completed: 0 (already at bottom)
  */
-function getZoneIcon(zone: number, section?: string): string {
+function getMaxLeftZone(section?: string): number {
+  switch (section) {
+    case 'shortList': return 2;
+    case 'toPlay': return 1;
+    case 'somedayMaybe': return 0;
+    case 'completed': return 0;
+    default: return 0;
+  }
+}
+
+/**
+ * Get the icon for a right-swipe zone and section
+ */
+function getRightZoneIcon(zone: number, section?: string): string {
   if (section === 'completed') {
     if (zone === 1) return '↩';
     if (zone === 2) return '↑';
@@ -162,20 +179,41 @@ function getZoneIcon(zone: number, section?: string): string {
 }
 
 /**
- * Get the zone color
+ * Get the icon for a left-swipe zone
+ */
+function getLeftZoneIcon(zone: number): string {
+  if (zone === 1) return '↓';
+  return '⇊';
+}
+
+/**
+ * Get the right-swipe zone color
  * Zone 1 = green (complete/un-complete), Zones 2-3 = blue (promote)
  */
-function getZoneColor(zone: number): string {
+function getRightZoneColor(zone: number): string {
   return zone === 1 ? '#4CAF50' : '#1A237E';
 }
 
 /**
- * Determine swipe action from zone and section
+ * Left-swipe zone color: orange/red for demote
  */
-function getSwipeAction(zone: number, section?: string): SwipeAction {
+const LEFT_ZONE_COLOR = '#E65100';
+
+/**
+ * Determine right-swipe action from zone
+ */
+function getRightSwipeAction(zone: number): SwipeAction {
   if (zone === 1) return 'completed';
   if (zone === 2) return 'moveUp1';
   return 'moveUp2';
+}
+
+/**
+ * Determine left-swipe action from zone
+ */
+function getLeftSwipeAction(zone: number): SwipeAction {
+  if (zone === 1) return 'moveDown1';
+  return 'moveDown2';
 }
 
 function GameRowComponent({
@@ -189,9 +227,10 @@ function GameRowComponent({
 }: GameRowProps) {
   const haptics = useHaptics();
   const translateX = useSharedValue(0);
-  const currentZone = useSharedValue(0);
+  const currentZone = useSharedValue(0); // positive = right zones, negative = left zones
 
-  const maxZone = getMaxZone(section);
+  const maxRightZone = getMaxRightZone(section);
+  const maxLeftZone = getMaxLeftZone(section);
 
   // Position-based color based on section
   const getColorForSection = () => {
@@ -199,7 +238,6 @@ function GameRowComponent({
     if (section === 'completed') return getPositionalGrey(index, totalCount);
     if (section === 'somedayMaybe') return getPositionalBlue(index, totalCount);
     if (section === 'toPlay') return getPositionalGreen(index, totalCount);
-    // Fallback for backward compat (no section prop)
     return game.isCompleted
       ? getPositionalGrey(index, totalCount)
       : getPositionalGreen(index, totalCount);
@@ -208,12 +246,13 @@ function GameRowComponent({
   const gradientProps = getGradientProps(color);
 
   const handleSwipeAction = useCallback((zone: number) => {
-    if (onSwipe && zone > 0) {
-      haptics.light();
-      const action = getSwipeAction(zone, section);
-      onSwipe(game.id, action);
-    }
-  }, [onSwipe, game.id, haptics, section]);
+    if (!onSwipe || zone === 0) return;
+    haptics.light();
+    const action = zone > 0
+      ? getRightSwipeAction(zone)
+      : getLeftSwipeAction(Math.abs(zone));
+    onSwipe(game.id, action);
+  }, [onSwipe, game.id, haptics]);
 
   const handleInfo = useCallback(() => {
     if (onInfo) {
@@ -222,26 +261,34 @@ function GameRowComponent({
     }
   }, [onInfo, game.id, haptics]);
 
-  // Compute zone from translation
-  const computeZone = useCallback((translationX: number): number => {
-    if (translationX >= SWIPE_ZONE_3 && maxZone >= 3) return 3;
-    if (translationX >= SWIPE_ZONE_2 && maxZone >= 2) return 2;
-    if (translationX >= SWIPE_ZONE_1) return 1;
-    return 0;
-  }, [maxZone]);
-
-  // Pan gesture for swipe
+  // Pan gesture for bidirectional swipe
   const panGesture = Gesture.Pan()
-    .activeOffsetX(10)
+    .activeOffsetX([-10, 10])
     .failOffsetY([-30, 30])
     .maxPointers(1)
     .onUpdate((event) => {
-      if (event.translationX > 0) {
-        translateX.value = event.translationX;
+      const tx = event.translationX;
 
-        const newZone = event.translationX >= SWIPE_ZONE_3 && maxZone >= 3 ? 3
-          : event.translationX >= SWIPE_ZONE_2 && maxZone >= 2 ? 2
-          : event.translationX >= SWIPE_ZONE_1 ? 1
+      if (tx > 0) {
+        // Right swipe (promote / complete)
+        translateX.value = tx;
+
+        const newZone = tx >= SWIPE_ZONE_3 && maxRightZone >= 3 ? 3
+          : tx >= SWIPE_ZONE_2 && maxRightZone >= 2 ? 2
+          : tx >= SWIPE_ZONE_1 ? 1
+          : 0;
+
+        if (newZone !== currentZone.value) {
+          currentZone.value = newZone;
+          runOnJS(haptics.selection)();
+        }
+      } else if (tx < 0 && maxLeftZone > 0) {
+        // Left swipe (demote)
+        translateX.value = tx;
+        const absTx = Math.abs(tx);
+
+        const newZone = absTx >= SWIPE_ZONE_2 && maxLeftZone >= 2 ? -2
+          : absTx >= SWIPE_ZONE_1 ? -1
           : 0;
 
         if (newZone !== currentZone.value) {
@@ -250,9 +297,9 @@ function GameRowComponent({
         }
       }
     })
-    .onEnd((event) => {
+    .onEnd(() => {
       const finalZone = currentZone.value;
-      if (finalZone > 0) {
+      if (finalZone !== 0) {
         translateX.value = withTiming(0, { duration: 150 });
         runOnJS(handleSwipeAction)(finalZone);
       } else {
@@ -265,14 +312,13 @@ function GameRowComponent({
     transform: [{ translateX: translateX.value }],
   }));
 
-  // Zone 1 indicator (green)
-  const zone1Style = useAnimatedStyle(() => ({
-    opacity: translateX.value >= SWIPE_ZONE_1 ? 1 : Math.min(translateX.value / SWIPE_ZONE_1, 1),
+  // === Right swipe indicators (left side, promote) ===
+  const rightZone1Style = useAnimatedStyle(() => ({
+    opacity: translateX.value >= SWIPE_ZONE_1 ? 1 : Math.max(0, Math.min(translateX.value / SWIPE_ZONE_1, 1)),
   }));
 
-  // Zone 2 indicator (blue, replaces zone 1)
-  const zone2Style = useAnimatedStyle(() => {
-    if (maxZone < 2) return { opacity: 0 };
+  const rightZone2Style = useAnimatedStyle(() => {
+    if (maxRightZone < 2) return { opacity: 0 };
     return {
       opacity: translateX.value >= SWIPE_ZONE_2
         ? 1
@@ -282,9 +328,8 @@ function GameRowComponent({
     };
   });
 
-  // Zone 3 indicator (blue, replaces zone 2)
-  const zone3Style = useAnimatedStyle(() => {
-    if (maxZone < 3) return { opacity: 0 };
+  const rightZone3Style = useAnimatedStyle(() => {
+    if (maxRightZone < 3) return { opacity: 0 };
     return {
       opacity: translateX.value >= SWIPE_ZONE_3
         ? 1
@@ -294,9 +339,32 @@ function GameRowComponent({
     };
   });
 
-  const zone1Icon = getZoneIcon(1, section);
-  const zone2Icon = getZoneIcon(2, section);
-  const zone3Icon = getZoneIcon(3, section);
+  // === Left swipe indicators (right side, demote) ===
+  const leftZone1Style = useAnimatedStyle(() => {
+    if (maxLeftZone < 1) return { opacity: 0 };
+    const absTx = Math.abs(Math.min(translateX.value, 0));
+    return {
+      opacity: absTx >= SWIPE_ZONE_1 ? 1 : Math.min(absTx / SWIPE_ZONE_1, 1),
+    };
+  });
+
+  const leftZone2Style = useAnimatedStyle(() => {
+    if (maxLeftZone < 2) return { opacity: 0 };
+    const absTx = Math.abs(Math.min(translateX.value, 0));
+    return {
+      opacity: absTx >= SWIPE_ZONE_2
+        ? 1
+        : absTx >= SWIPE_ZONE_1
+          ? (absTx - SWIPE_ZONE_1) / (SWIPE_ZONE_2 - SWIPE_ZONE_1)
+          : 0,
+    };
+  });
+
+  const rIcon1 = getRightZoneIcon(1, section);
+  const rIcon2 = getRightZoneIcon(2, section);
+  const rIcon3 = getRightZoneIcon(3, section);
+  const lIcon1 = getLeftZoneIcon(1);
+  const lIcon2 = getLeftZoneIcon(2);
 
   return (
     <GestureDetector gesture={panGesture}>
@@ -306,20 +374,33 @@ function GameRowComponent({
         exiting={FadeOut.duration(200)}
         layout={Layout.springify().damping(15).stiffness(100)}
       >
-        {/* Swipe indicators behind the row (stacked, higher zones on top) */}
-        <Animated.View style={[styles.swipeIndicator, { backgroundColor: getZoneColor(1) }, zone1Style]}>
-          <Text style={styles.swipeIndicatorText}>{zone1Icon}</Text>
+        {/* Right-swipe indicators (left side, promote/complete) */}
+        <Animated.View style={[styles.swipeIndicatorLeft, { backgroundColor: getRightZoneColor(1) }, rightZone1Style]}>
+          <Text style={styles.swipeIndicatorText}>{rIcon1}</Text>
         </Animated.View>
-        {maxZone >= 2 && (
-          <Animated.View style={[styles.swipeIndicator, { backgroundColor: getZoneColor(2) }, zone2Style]}>
-            <Text style={styles.swipeIndicatorText}>{zone2Icon}</Text>
+        {maxRightZone >= 2 && (
+          <Animated.View style={[styles.swipeIndicatorLeft, { backgroundColor: getRightZoneColor(2) }, rightZone2Style]}>
+            <Text style={styles.swipeIndicatorText}>{rIcon2}</Text>
           </Animated.View>
         )}
-        {maxZone >= 3 && (
-          <Animated.View style={[styles.swipeIndicator, { backgroundColor: getZoneColor(3) }, zone3Style]}>
-            <Text style={styles.swipeIndicatorText}>{zone3Icon}</Text>
+        {maxRightZone >= 3 && (
+          <Animated.View style={[styles.swipeIndicatorLeft, { backgroundColor: getRightZoneColor(3) }, rightZone3Style]}>
+            <Text style={styles.swipeIndicatorText}>{rIcon3}</Text>
           </Animated.View>
         )}
+
+        {/* Left-swipe indicators (right side, demote) */}
+        {maxLeftZone >= 1 && (
+          <Animated.View style={[styles.swipeIndicatorRight, { backgroundColor: LEFT_ZONE_COLOR }, leftZone1Style]}>
+            <Text style={styles.swipeIndicatorText}>{lIcon1}</Text>
+          </Animated.View>
+        )}
+        {maxLeftZone >= 2 && (
+          <Animated.View style={[styles.swipeIndicatorRight, { backgroundColor: LEFT_ZONE_COLOR }, leftZone2Style]}>
+            <Text style={styles.swipeIndicatorText}>{lIcon2}</Text>
+          </Animated.View>
+        )}
+
         <Animated.View style={[styles.rowContent, animatedStyle, isDragging && styles.dragging]}>
           {/* Gradient background layer */}
           <LinearGradient {...gradientProps} style={styles.gradientBackground} />
@@ -373,13 +454,23 @@ const styles = StyleSheet.create({
   rowContent: {
     flex: 1,
   },
-  swipeIndicator: {
+  swipeIndicatorLeft: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     width: 80,
     backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 0,
+  },
+  swipeIndicatorRight: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 80,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 0,
