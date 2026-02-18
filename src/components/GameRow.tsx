@@ -8,7 +8,7 @@
  * - Completed state with grey coloring
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
@@ -232,18 +232,18 @@ function GameRowComponent({
   const maxRightZone = getMaxRightZone(section);
   const maxLeftZone = getMaxLeftZone(section);
 
-  // Position-based color based on section
-  const getColorForSection = () => {
-    if (section === 'shortList') return getPositionalGold(index, totalCount);
-    if (section === 'completed') return getPositionalGrey(index, totalCount);
-    if (section === 'somedayMaybe') return getPositionalBlue(index, totalCount);
-    if (section === 'toPlay') return getPositionalGreen(index, totalCount);
-    return game.isCompleted
+  // Position-based color based on section (memoized to avoid recomputing on every render)
+  const gradientProps = useMemo(() => {
+    let color;
+    if (section === 'shortList') color = getPositionalGold(index, totalCount);
+    else if (section === 'completed') color = getPositionalGrey(index, totalCount);
+    else if (section === 'somedayMaybe') color = getPositionalBlue(index, totalCount);
+    else if (section === 'toPlay') color = getPositionalGreen(index, totalCount);
+    else color = game.isCompleted
       ? getPositionalGrey(index, totalCount)
       : getPositionalGreen(index, totalCount);
-  };
-  const color = getColorForSection();
-  const gradientProps = getGradientProps(color);
+    return getGradientProps(color);
+  }, [section, index, totalCount, game.isCompleted]);
 
   const handleSwipeAction = useCallback((zone: number) => {
     if (!onSwipe || zone === 0) return;
@@ -261,8 +261,8 @@ function GameRowComponent({
     }
   }, [onInfo, game.id, haptics]);
 
-  // Pan gesture for bidirectional swipe
-  const panGesture = Gesture.Pan()
+  // Pan gesture for bidirectional swipe (memoized to avoid recreating on every render)
+  const panGesture = useMemo(() => Gesture.Pan()
     .activeOffsetX([-10, 10])
     .failOffsetY([-30, 30])
     .maxPointers(1)
@@ -306,7 +306,7 @@ function GameRowComponent({
         translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
       currentZone.value = 0;
-    });
+    }), [maxRightZone, maxLeftZone, handleSwipeAction, haptics]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],

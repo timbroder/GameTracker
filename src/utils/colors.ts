@@ -94,6 +94,26 @@ export function getNextColorIndex(currentIndex: number): number {
 // =============================================================================
 
 /**
+ * Cache for positional color computations.
+ * Avoids re-computing hex parsing, interpolation, darken/lighten on every render.
+ * Clears entirely when exceeding max size (simple LRU alternative).
+ */
+const COLOR_CACHE_MAX = 500;
+const colorCache = new Map<string, GradientColor>();
+
+function getCachedColor(
+  key: string,
+  compute: () => GradientColor,
+): GradientColor {
+  const cached = colorCache.get(key);
+  if (cached) return cached;
+  if (colorCache.size >= COLOR_CACHE_MAX) colorCache.clear();
+  const result = compute();
+  colorCache.set(key, result);
+  return result;
+}
+
+/**
  * Parse hex color to RGB components
  */
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
@@ -200,17 +220,14 @@ function lightenColor(hex: string, percent: number): string {
  * @param total - Total number of items in the list
  */
 export function getPositionalGreen(index: number, total: number): GradientColor {
-  // Avoid division by zero; single item gets darkest color
-  const factor = total > 1 ? index / (total - 1) : 0;
-
-  // Base color for this position in the list
-  const baseColor = interpolateColor(GREEN_GRADIENT.dark, GREEN_GRADIENT.light, factor);
-
-  // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
-  return {
-    primary: darkenColor(baseColor, 0.08),   // Top of row: 8% darker
-    secondary: lightenColor(baseColor, 0.05), // Bottom of row: 5% lighter
-  };
+  return getCachedColor(`green-${index}-${total}`, () => {
+    const factor = total > 1 ? index / (total - 1) : 0;
+    const baseColor = interpolateColor(GREEN_GRADIENT.dark, GREEN_GRADIENT.light, factor);
+    return {
+      primary: darkenColor(baseColor, 0.08),
+      secondary: lightenColor(baseColor, 0.05),
+    };
+  });
 }
 
 /**
@@ -220,17 +237,14 @@ export function getPositionalGreen(index: number, total: number): GradientColor 
  * @param total - Total number of completed items
  */
 export function getPositionalGrey(index: number, total: number): GradientColor {
-  // Avoid division by zero; single item gets darkest color
-  const factor = total > 1 ? index / (total - 1) : 0;
-
-  // Base color for this position in the list
-  const baseColor = interpolateColor(GREY_GRADIENT.dark, GREY_GRADIENT.light, factor);
-
-  // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
-  return {
-    primary: darkenColor(baseColor, 0.08),   // Top of row: 8% darker
-    secondary: lightenColor(baseColor, 0.05), // Bottom of row: 5% lighter
-  };
+  return getCachedColor(`grey-${index}-${total}`, () => {
+    const factor = total > 1 ? index / (total - 1) : 0;
+    const baseColor = interpolateColor(GREY_GRADIENT.dark, GREY_GRADIENT.light, factor);
+    return {
+      primary: darkenColor(baseColor, 0.08),
+      secondary: lightenColor(baseColor, 0.05),
+    };
+  });
 }
 
 /**
@@ -240,17 +254,14 @@ export function getPositionalGrey(index: number, total: number): GradientColor {
  * @param total - Total number of short list items
  */
 export function getPositionalGold(index: number, total: number): GradientColor {
-  // Avoid division by zero; single item gets darkest color
-  const factor = total > 1 ? index / (total - 1) : 0;
-
-  // Base color for this position in the list
-  const baseColor = interpolateColor(GOLD_GRADIENT.dark, GOLD_GRADIENT.light, factor);
-
-  // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
-  return {
-    primary: darkenColor(baseColor, 0.08),   // Top of row: 8% darker
-    secondary: lightenColor(baseColor, 0.05), // Bottom of row: 5% lighter
-  };
+  return getCachedColor(`gold-${index}-${total}`, () => {
+    const factor = total > 1 ? index / (total - 1) : 0;
+    const baseColor = interpolateColor(GOLD_GRADIENT.dark, GOLD_GRADIENT.light, factor);
+    return {
+      primary: darkenColor(baseColor, 0.08),
+      secondary: lightenColor(baseColor, 0.05),
+    };
+  });
 }
 
 /**
@@ -260,15 +271,12 @@ export function getPositionalGold(index: number, total: number): GradientColor {
  * @param total - Total number of someday maybe items
  */
 export function getPositionalBlue(index: number, total: number): GradientColor {
-  // Avoid division by zero; single item gets darkest color
-  const factor = total > 1 ? index / (total - 1) : 0;
-
-  // Base color for this position in the list
-  const baseColor = interpolateColor(BLUE_GRADIENT.dark, BLUE_GRADIENT.light, factor);
-
-  // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
-  return {
-    primary: darkenColor(baseColor, 0.08),   // Top of row: 8% darker
-    secondary: lightenColor(baseColor, 0.05), // Bottom of row: 5% lighter
-  };
+  return getCachedColor(`blue-${index}-${total}`, () => {
+    const factor = total > 1 ? index / (total - 1) : 0;
+    const baseColor = interpolateColor(BLUE_GRADIENT.dark, BLUE_GRADIENT.light, factor);
+    return {
+      primary: darkenColor(baseColor, 0.08),
+      secondary: lightenColor(baseColor, 0.05),
+    };
+  });
 }

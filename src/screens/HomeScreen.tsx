@@ -3,7 +3,7 @@
  */
 
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Alert, Keyboard } from 'react-native';
+import { View, StyleSheet, Alert, Keyboard, LayoutAnimation } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { GameList, EditModal, SearchBar, SearchResults } from '../components';
@@ -171,6 +171,8 @@ export function HomeScreen() {
         const game = games.find((g) => g.id === gameId);
         if (!game) return;
 
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
         if (action === 'completed') {
           await toggleCompleted(gameId);
           supabaseSync.syncAfterChange();
@@ -254,6 +256,7 @@ export function HomeScreen() {
       try {
         const game = games.find((g) => g.id === gameId);
         if (!game) return;
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const targetSection = game.isSomedayMaybe ? 'toPlay' : 'somedayMaybe';
         await moveGameToSection(gameId, targetSection as GameSection);
         supabaseSync.syncAfterChange();
@@ -267,6 +270,7 @@ export function HomeScreen() {
   const handleToggleShortList = useCallback(
     async (gameId: string) => {
       try {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         await toggleShortList(gameId);
         supabaseSync.syncAfterChange();
       } catch (err) {
