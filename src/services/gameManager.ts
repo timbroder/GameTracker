@@ -54,24 +54,29 @@ function getNextSortOrder(games: Game[]): number {
 }
 
 /**
- * Add a new game to the list (at the top)
+ * Add a new game to the list (at the bottom of To Play)
  */
 export async function addGame(input: NewGameInput): Promise<Game> {
   const games = await loadGames();
 
-  // Shift existing games down to make room at the top
-  const shiftedGames = shiftSortOrders(games);
+  // Find the bottom of the To Play section
+  const toPlayGames = games.filter(
+    (g) => !g.isCompleted && !g.isShortListed && !g.isSomedayMaybe
+  );
+  const maxSortOrder = toPlayGames.length > 0
+    ? Math.max(...toPlayGames.map((g) => g.sortOrder))
+    : -1;
 
   const newGame: Game = {
     ...input,
     id: uuidv4(),
     dateAdded: new Date().toISOString(),
-    sortOrder: 0, // New games go to the top
+    sortOrder: maxSortOrder + 1,
     colorIndex: getNextColorIndex(games),
     isCompleted: false,
   };
 
-  const updatedGames = [...shiftedGames, newGame];
+  const updatedGames = [...games, newGame];
   await saveGames(updatedGames);
 
   return newGame;
