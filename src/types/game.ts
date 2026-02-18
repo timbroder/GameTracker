@@ -12,6 +12,7 @@ export interface Game {
   platformLogoUrl?: string;      // URL to platform logo (if available)
   isCompleted: boolean;          // Played status
   isShortListed?: boolean;        // In the Short List section (up to 5 games)
+  isSomedayMaybe?: boolean;       // In the Someday, Maybe section
   completedDate?: string;        // ISO date string, auto-set when completed
   playtimeHours?: number;        // Optional playtime tracking
   sortOrder: number;             // Manual sort order (for unplayed games)

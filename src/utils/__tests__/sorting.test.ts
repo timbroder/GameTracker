@@ -30,16 +30,18 @@ function createMockGame(overrides: Partial<Game> = {}): Game {
 
 describe('Sorting utilities', () => {
   describe('sortGames', () => {
-    it('should separate unplayed and completed games', () => {
+    it('should separate unplayed, someday maybe, and completed games', () => {
       const games = [
         createMockGame({ id: '1', isCompleted: false }),
         createMockGame({ id: '2', isCompleted: true }),
         createMockGame({ id: '3', isCompleted: false }),
+        createMockGame({ id: '4', isCompleted: false, isSomedayMaybe: true }),
       ];
 
       const result = sortGames(games);
 
       expect(result.unplayed).toHaveLength(2);
+      expect(result.somedayMaybe).toHaveLength(1);
       expect(result.completed).toHaveLength(1);
     });
 
@@ -87,7 +89,36 @@ describe('Sorting utilities', () => {
       const result = sortGames([]);
 
       expect(result.unplayed).toHaveLength(0);
+      expect(result.somedayMaybe).toHaveLength(0);
       expect(result.completed).toHaveLength(0);
+    });
+
+    it('should sort someday maybe by sortOrder ascending', () => {
+      const games = [
+        createMockGame({ id: '1', sortOrder: 2, isCompleted: false, isSomedayMaybe: true }),
+        createMockGame({ id: '2', sortOrder: 0, isCompleted: false, isSomedayMaybe: true }),
+        createMockGame({ id: '3', sortOrder: 1, isCompleted: false, isSomedayMaybe: true }),
+      ];
+
+      const result = sortGames(games);
+
+      expect(result.somedayMaybe[0].id).toBe('2');
+      expect(result.somedayMaybe[1].id).toBe('3');
+      expect(result.somedayMaybe[2].id).toBe('1');
+    });
+
+    it('should not include someday maybe games in unplayed', () => {
+      const games = [
+        createMockGame({ id: '1', isCompleted: false }),
+        createMockGame({ id: '2', isCompleted: false, isSomedayMaybe: true }),
+      ];
+
+      const result = sortGames(games);
+
+      expect(result.unplayed).toHaveLength(1);
+      expect(result.unplayed[0].id).toBe('1');
+      expect(result.somedayMaybe).toHaveLength(1);
+      expect(result.somedayMaybe[0].id).toBe('2');
     });
 
     it('should handle games without completedDate', () => {

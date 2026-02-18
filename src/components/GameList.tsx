@@ -18,7 +18,7 @@ import DraggableFlatList, {
 } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { Game } from '../types';
-import { GameRow, GAME_ROW_HEIGHT } from './GameRow';
+import { GameRow, GAME_ROW_HEIGHT, type SwipeAction } from './GameRow';
 import { SkeletonLoader } from './SkeletonRow';
 import type { SortedGames } from '../utils/sorting';
 
@@ -50,8 +50,8 @@ export interface GameListProps {
   sortedGames: SortedGames;
   loading: boolean;
   error: string | null;
-  onReorder: (shortListIds: string[], toPlayIds: string[]) => Promise<void>;
-  onSwipe: (gameId: string) => Promise<void>;
+  onReorder: (shortListIds: string[], toPlayIds: string[], somedayMaybeIds: string[]) => Promise<void>;
+  onSwipe: (gameId: string, action: SwipeAction) => Promise<void>;
   onInfo?: (gameId: string) => void;
   onRetry?: () => void;
 }
@@ -134,56 +134,88 @@ export function GameList({
   onInfo,
   onRetry,
 }: GameListProps) {
-  const { shortList, unplayed, completed } = sortedGames;
+  const { shortList, unplayed, somedayMaybe, completed } = sortedGames;
 
-  // Combine short list and unplayed into single draggable array
+  // Combine short list, unplayed, and someday maybe into single draggable array
   const combinedData = useMemo(
-    () => [...shortList, ...unplayed],
-    [shortList, unplayed]
+    () => [...shortList, ...unplayed, ...somedayMaybe],
+    [shortList, unplayed, somedayMaybe]
   );
 
   const shortListCount = shortList.length;
   const unplayedCount = unplayed.length;
+  const somedayMaybeCount = somedayMaybe.length;
+
+  // boundary1: Short List / To Play border
+  // boundary2: To Play / Someday Maybe border
+  const boundary1 = shortListCount;
+  const boundary2 = shortListCount + unplayedCount;
 
   const handleDragEnd = useCallback(
     ({ data, from, to }: { data: Game[]; from: number; to: number }) => {
-      const oldBoundary = shortListCount;
-      let newBoundary = oldBoundary;
+      let newBoundary1 = boundary1;
+      let newBoundary2 = boundary2;
 
-      if (from >= oldBoundary && to < oldBoundary) {
-        // To Play → Short List
-        newBoundary = Math.min(oldBoundary + 1, MAX_SHORT_LIST);
-      } else if (from < oldBoundary && to >= oldBoundary) {
-        // Short List → To Play
-        newBoundary = Math.max(oldBoundary - 1, 0);
+      // Adjust boundary1 (Short List / To Play)
+      if (from >= boundary1 && to < boundary1) {
+        // Moving into Short List
+        newBoundary1 = Math.min(boundary1 + 1, MAX_SHORT_LIST);
+      } else if (from < boundary1 && to >= boundary1) {
+        // Moving out of Short List
+        newBoundary1 = Math.max(boundary1 - 1, 0);
       }
 
-      // Cap at 5: if boundary exceeds max, clamp it
-      newBoundary = Math.min(newBoundary, MAX_SHORT_LIST);
+      // Adjust boundary2 (To Play / Someday Maybe)
+      if (from >= boundary2 && to < boundary2) {
+        // Moving into To Play from Someday Maybe
+        newBoundary2 = boundary2 + 1;
+      } else if (from < boundary2 && from >= boundary1 && to >= boundary2) {
+        // Moving from To Play into Someday Maybe
+        newBoundary2 = boundary2 - 1;
+      }
 
-      const shortListIds = data.slice(0, newBoundary).map((g) => g.id);
-      const toPlayIds = data.slice(newBoundary).map((g) => g.id);
-      onReorder(shortListIds, toPlayIds);
+      // Cap Short List at 5
+      newBoundary1 = Math.min(newBoundary1, MAX_SHORT_LIST);
+      // Ensure boundary2 >= boundary1
+      newBoundary2 = Math.max(newBoundary2, newBoundary1);
+
+      const shortListIds = data.slice(0, newBoundary1).map((g) => g.id);
+      const toPlayIds = data.slice(newBoundary1, newBoundary2).map((g) => g.id);
+      const somedayMaybeIds = data.slice(newBoundary2).map((g) => g.id);
+      onReorder(shortListIds, toPlayIds, somedayMaybeIds);
     },
-    [onReorder, shortListCount]
+    [onReorder, boundary1, boundary2]
   );
 
   const renderItem = useCallback(
     ({ item, getIndex, drag, isActive }: RenderItemParams<Game>) => {
       const flatIndex = getIndex() ?? 0;
-      const isInShortList = flatIndex < shortListCount;
 
-      // Section-local index and total for gradient positioning
-      const sectionIndex = isInShortList
-        ? flatIndex
-        : flatIndex - shortListCount;
-      const sectionTotal = isInShortList ? shortListCount : unplayedCount;
-      const section = isInShortList ? 'shortList' : 'toPlay';
+      // Determine section from dual boundaries
+      let section: 'shortList' | 'toPlay' | 'somedayMaybe';
+      let sectionIndex: number;
+      let sectionTotal: number;
+
+      if (flatIndex < boundary1) {
+        section = 'shortList';
+        sectionIndex = flatIndex;
+        sectionTotal = shortListCount;
+      } else if (flatIndex < boundary2) {
+        section = 'toPlay';
+        sectionIndex = flatIndex - boundary1;
+        sectionTotal = unplayedCount;
+      } else {
+        section = 'somedayMaybe';
+        sectionIndex = flatIndex - boundary2;
+        sectionTotal = somedayMaybeCount;
+      }
 
       // Determine if we need a section header above this item
       let header = null;
-      if (flatIndex === shortListCount && unplayedCount > 0) {
+      if (flatIndex === boundary1 && unplayedCount > 0) {
         header = <SectionHeader title="To Play" count={unplayedCount} />;
+      } else if (flatIndex === boundary2 && somedayMaybeCount > 0) {
+        header = <SectionHeader title="Someday, Maybe" count={somedayMaybeCount} />;
       }
 
       return (
@@ -203,7 +235,7 @@ export function GameList({
         </>
       );
     },
-    [onSwipe, onInfo, shortListCount, unplayedCount]
+    [onSwipe, onInfo, boundary1, boundary2, shortListCount, unplayedCount, somedayMaybeCount]
   );
 
   const keyExtractor = useCallback((item: Game) => item.id, []);
@@ -231,7 +263,7 @@ export function GameList({
   }, [completed, completedCount, onSwipe, onInfo]);
 
   // Loading state - show skeleton while loading initial data
-  if (loading && shortList.length === 0 && unplayed.length === 0 && completed.length === 0) {
+  if (loading && shortList.length === 0 && unplayed.length === 0 && somedayMaybe.length === 0 && completed.length === 0) {
     return (
       <View style={styles.container}>
         <SkeletonLoader count={SKELETON_COUNT} />
@@ -245,7 +277,7 @@ export function GameList({
   }
 
   // Empty state
-  if (shortList.length === 0 && unplayed.length === 0 && completed.length === 0) {
+  if (shortList.length === 0 && unplayed.length === 0 && somedayMaybe.length === 0 && completed.length === 0) {
     return (
       <EmptyState message="No games yet. Tap + to add your first game!" />
     );
@@ -262,7 +294,10 @@ export function GameList({
         ListFooterComponent={ListFooter}
         ListEmptyComponent={
           completed.length > 0 ? (
-            <SectionHeader title="To Play" count={0} />
+            <>
+              <SectionHeader title="To Play" count={0} />
+              <SectionHeader title="Someday, Maybe" count={0} />
+            </>
           ) : (
             <EmptyState message="No games to play!" />
           )

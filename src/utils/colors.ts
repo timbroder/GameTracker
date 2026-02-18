@@ -155,6 +155,15 @@ const GOLD_GRADIENT = {
 };
 
 /**
+ * Blue gradient range for "Someday, Maybe" section
+ * Dark indigo at top → Light blue at bottom
+ */
+const BLUE_GRADIENT = {
+  dark: '#1A237E',    // Darkest blue (top of list)
+  light: '#90CAF9',   // Lightest blue (bottom of list)
+};
+
+/**
  * Grey gradient range for "Completed" section
  * Dark charcoal at top → Light silver at bottom
  */
@@ -236,6 +245,26 @@ export function getPositionalGold(index: number, total: number): GradientColor {
 
   // Base color for this position in the list
   const baseColor = interpolateColor(GOLD_GRADIENT.dark, GOLD_GRADIENT.light, factor);
+
+  // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
+  return {
+    primary: darkenColor(baseColor, 0.08),   // Top of row: 8% darker
+    secondary: lightenColor(baseColor, 0.05), // Bottom of row: 5% lighter
+  };
+}
+
+/**
+ * Get position-based blue color for "Someday, Maybe" items
+ * Each row has a subtle inner gradient: darker at top, lighter at bottom
+ * @param index - Item's position in the someday maybe list (0-based)
+ * @param total - Total number of someday maybe items
+ */
+export function getPositionalBlue(index: number, total: number): GradientColor {
+  // Avoid division by zero; single item gets darkest color
+  const factor = total > 1 ? index / (total - 1) : 0;
+
+  // Base color for this position in the list
+  const baseColor = interpolateColor(BLUE_GRADIENT.dark, BLUE_GRADIENT.light, factor);
 
   // Create inner row gradient: top is slightly darker, bottom is base/slightly lighter
   return {

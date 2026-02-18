@@ -59,7 +59,7 @@ describe('Game Manager Service', () => {
   };
 
   describe('addGame', () => {
-    it('should add a new game with generated fields', async () => {
+    it('should add a new game at the bottom of To Play', async () => {
       mockStorage.loadGames.mockResolvedValueOnce([mockGame]);
       mockStorage.saveGames.mockResolvedValueOnce(undefined);
 
@@ -69,15 +69,15 @@ describe('Game Manager Service', () => {
         ...newGameInput,
         id: 'mock-uuid-123',
         dateAdded: '2025-01-15T12:00:00.000Z',
-        sortOrder: 0, // New games go to top
+        sortOrder: 1, // After existing game at sortOrder 0
         colorIndex: 1, // Next color after 0
         isCompleted: false,
       });
 
-      // Existing game should have its sortOrder shifted up
+      // Existing game should be unchanged (no shifting)
       expect(mockStorage.saveGames).toHaveBeenCalledWith(
         expect.arrayContaining([
-          expect.objectContaining({ ...mockGame, sortOrder: 1 }), // Shifted
+          expect.objectContaining({ ...mockGame, sortOrder: 0 }), // Unchanged
           expect.objectContaining(newGameInput),
         ]),
       );
@@ -143,7 +143,7 @@ describe('Game Manager Service', () => {
   });
 
   describe('toggleCompleted', () => {
-    it('should mark game as completed with date', async () => {
+    it('should mark game as completed with date and clear someday maybe', async () => {
       mockStorage.loadGames.mockResolvedValueOnce([mockGame]);
       mockStorage.saveGames.mockResolvedValueOnce(undefined);
 
@@ -151,9 +151,10 @@ describe('Game Manager Service', () => {
 
       expect(result.isCompleted).toBe(true);
       expect(result.completedDate).toBe('2025-01-15T12:00:00.000Z');
+      expect(result.isSomedayMaybe).toBe(false);
     });
 
-    it('should mark game as unplayed and clear date', async () => {
+    it('should mark game as unplayed with someday maybe and clear date', async () => {
       const completedGame = {
         ...mockGame,
         isCompleted: true,
@@ -166,6 +167,7 @@ describe('Game Manager Service', () => {
 
       expect(result.isCompleted).toBe(false);
       expect(result.completedDate).toBeUndefined();
+      expect(result.isSomedayMaybe).toBe(true);
     });
 
     it('should throw error for non-existent game', async () => {

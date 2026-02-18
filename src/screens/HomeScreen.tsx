@@ -11,6 +11,8 @@ import { useGames, useSupabaseSync } from '../hooks';
 import { searchGames } from '../services/rawgApi';
 import { addGame as addGameService, gameExists } from '../services/gameManager';
 import type { Game, GameSearchResult, Platform } from '../types';
+import type { SwipeAction } from '../components/GameRow';
+import type { GameSection } from '../services/gameManager';
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -23,6 +25,7 @@ export function HomeScreen() {
     toggleCompleted,
     reorderWithSections,
     toggleShortList,
+    moveGameToSection,
     deleteGame,
   } = useGames();
 
@@ -135,9 +138,9 @@ export function HomeScreen() {
   }, []);
 
   const handleReorder = useCallback(
-    async (shortListIds: string[], toPlayIds: string[]) => {
+    async (shortListIds: string[], toPlayIds: string[], somedayMaybeIds: string[]) => {
       try {
-        await reorderWithSections(shortListIds, toPlayIds);
+        await reorderWithSections(shortListIds, toPlayIds, somedayMaybeIds);
         supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to reorder games');
@@ -146,16 +149,64 @@ export function HomeScreen() {
     [reorderWithSections, supabaseSync]
   );
 
+  /**
+   * Determine the current section of a game
+   */
+  const getGameSection = useCallback((game: Game): GameSection => {
+    if (game.isCompleted) return 'completed';
+    if (game.isShortListed) return 'shortList';
+    if (game.isSomedayMaybe) return 'somedayMaybe';
+    return 'toPlay';
+  }, []);
+
+  /**
+   * Section promotion order: completed -> somedayMaybe -> toPlay -> shortList
+   * moveUp1 = one step up, moveUp2 = two steps up
+   */
+  const sectionOrder: GameSection[] = ['completed', 'somedayMaybe', 'toPlay', 'shortList'];
+
   const handleSwipe = useCallback(
-    async (gameId: string) => {
+    async (gameId: string, action: SwipeAction) => {
       try {
-        await toggleCompleted(gameId);
+        const game = games.find((g) => g.id === gameId);
+        if (!game) return;
+
+        if (action === 'completed') {
+          await toggleCompleted(gameId);
+          supabaseSync.syncAfterChange();
+          return;
+        }
+
+        const currentSection = getGameSection(game);
+        const currentIdx = sectionOrder.indexOf(currentSection);
+
+        if (action === 'moveUp1' || action === 'moveUp2') {
+          // Promote: move up in section order
+          const steps = action === 'moveUp1' ? 1 : 2;
+          const targetIdx = Math.min(currentIdx + steps, sectionOrder.length - 1);
+          const targetSection = sectionOrder[targetIdx];
+
+          if (targetSection === 'shortList' && sortedGames.shortList.length >= 5) {
+            Alert.alert('Short List Full', 'Remove a game from the Short List first (max 5).');
+            return;
+          }
+
+          await moveGameToSection(gameId, targetSection);
+        } else {
+          // Demote: move down in section order (moveDown1 / moveDown2)
+          const steps = action === 'moveDown1' ? 1 : 2;
+          const targetIdx = Math.max(currentIdx - steps, 0);
+          const targetSection = sectionOrder[targetIdx];
+
+          await moveGameToSection(gameId, targetSection);
+        }
+
         supabaseSync.syncAfterChange();
       } catch (err) {
         Alert.alert('Error', 'Failed to update game');
       }
     },
-    [toggleCompleted, supabaseSync]
+    [games, toggleCompleted, moveGameToSection, getGameSection, supabaseSync, sortedGames.shortList.length]
   );
 
   const handleInfo = useCallback(
@@ -196,6 +247,21 @@ export function HomeScreen() {
       }
     },
     [toggleCompleted, supabaseSync]
+  );
+
+  const handleToggleSomedayMaybe = useCallback(
+    async (gameId: string) => {
+      try {
+        const game = games.find((g) => g.id === gameId);
+        if (!game) return;
+        const targetSection = game.isSomedayMaybe ? 'toPlay' : 'somedayMaybe';
+        await moveGameToSection(gameId, targetSection as GameSection);
+        supabaseSync.syncAfterChange();
+      } catch (err) {
+        Alert.alert('Error', 'Failed to update game');
+      }
+    },
+    [games, moveGameToSection, supabaseSync]
   );
 
   const handleToggleShortList = useCallback(
@@ -251,6 +317,7 @@ export function HomeScreen() {
         onDelete={handleDeleteGame}
         onToggleCompleted={handleToggleCompletedFromModal}
         onToggleShortList={handleToggleShortList}
+        onToggleSomedayMaybe={handleToggleSomedayMaybe}
       />
     </View>
   );

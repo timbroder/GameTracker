@@ -7,6 +7,7 @@ import type { Game } from '../types';
 export interface SortedGames {
   shortList: Game[];
   unplayed: Game[];
+  somedayMaybe: Game[];
   completed: Game[];
 }
 
@@ -21,7 +22,11 @@ export function sortGames(games: Game[]): SortedGames {
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   const unplayed = games
-    .filter((game) => !game.isCompleted && !game.isShortListed)
+    .filter((game) => !game.isCompleted && !game.isShortListed && !game.isSomedayMaybe)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const somedayMaybe = games
+    .filter((game) => !game.isCompleted && !game.isShortListed && game.isSomedayMaybe)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
   const completed = games
@@ -33,7 +38,7 @@ export function sortGames(games: Game[]): SortedGames {
       return dateB - dateA;
     });
 
-  return { shortList, unplayed, completed };
+  return { shortList, unplayed, somedayMaybe, completed };
 }
 
 /**

@@ -13,6 +13,7 @@ import { TabNavigator } from './navigation';
 import { getRawgApiKey } from './config';
 import { setApiKey } from './services/rawgApi';
 import { runDuplicateMigration } from './services/migrateDuplicates';
+import { runSomedayMaybeMigration } from './services/migrateSomedayMaybe';
 
 function App(): React.JSX.Element {
   useEffect(() => {
@@ -22,8 +23,9 @@ function App(): React.JSX.Element {
       setApiKey(apiKey);
     }
 
-    // Run one-time duplicate cleanup migration
+    // Run one-time migrations
     runDuplicateMigration().catch(console.error);
+    runSomedayMaybeMigration().catch(console.error);
   }, []);
 
   return (

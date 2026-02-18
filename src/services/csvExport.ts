@@ -57,7 +57,7 @@ export function generateCSV(games: Game[]): string {
   const rows = games.map((game) => [
     escapeCSV(game.name),
     escapeCSV(game.platform),
-    game.isCompleted ? 'Completed' : game.isShortListed ? 'Short List' : 'To Play',
+    game.isCompleted ? 'Completed' : game.isShortListed ? 'Short List' : game.isSomedayMaybe ? 'Someday Maybe' : 'To Play',
     escapeCSV(formatDate(game.completedDate)),
     escapeCSV(formatDate(game.dateAdded)),
     escapeCSV(game.playtimeHours),

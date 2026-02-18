@@ -127,6 +127,52 @@ export async function addGameAsToPlay(
 }
 
 /**
+ * Add a game from discovery to "Someday, Maybe" list
+ * @param game - The game from discovery
+ * @param platform - The legacy platform
+ */
+export async function addGameAsSomedayMaybe(
+  game: DiscoveryGame,
+  platform: LegacyPlatform
+): Promise<Game> {
+  const games = await loadGames();
+
+  // Check if game already exists for this platform
+  const exists = games.some(
+    (g) => g.rawgId === game.id && g.platformId === platform.id
+  );
+
+  if (exists) {
+    throw new Error('Game already in collection');
+  }
+
+  // Find max sortOrder among someday maybe games to add at bottom
+  const somedayGames = games.filter((g) => !g.isCompleted && !g.isShortListed && g.isSomedayMaybe);
+  const maxSortOrder = somedayGames.length > 0
+    ? Math.max(...somedayGames.map((g) => g.sortOrder))
+    : -1;
+
+  const newGame: Game = {
+    id: uuidv4(),
+    rawgId: game.id,
+    name: game.name,
+    platform: platform.name,
+    platformId: platform.id,
+    boxArtUrl: game.backgroundImage || '',
+    isCompleted: false,
+    isSomedayMaybe: true,
+    sortOrder: maxSortOrder + 1,
+    dateAdded: new Date().toISOString(),
+    colorIndex: getNextColorIndex(games),
+  };
+
+  const updatedGames = [...games, newGame];
+  await saveGames(updatedGames);
+
+  return newGame;
+}
+
+/**
  * Check if a game exists in the collection
  */
 export async function isGameInCollection(
