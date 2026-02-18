@@ -93,19 +93,20 @@ export function EditModal({
     onClose();
   }, [onClose, haptics]);
 
-  if (!game) {
-    return null;
-  }
-
-  // Memoize gradient to avoid recomputing on every render
+  // Memoize gradient (must be before early return to satisfy rules of hooks)
   const gradientProps = useMemo(() => {
+    if (!game) return null;
     let headerColor;
     if (game.isCompleted) headerColor = getPositionalGrey(0, 1);
     else if (game.isShortListed) headerColor = getPositionalGold(0, 1);
     else if (game.isSomedayMaybe) headerColor = getPositionalBlue(0, 1);
     else headerColor = getPositionalGreen(0, 1);
     return getGradientProps(headerColor);
-  }, [game.isCompleted, game.isShortListed, game.isSomedayMaybe]);
+  }, [game]);
+
+  if (!game) {
+    return null;
+  }
 
   return (
     <Modal
@@ -117,7 +118,7 @@ export function EditModal({
       <SafeAreaView style={styles.container}>
         <ScrollView style={styles.scrollContainer} bounces={false}>
           {/* Header with gradient */}
-          <LinearGradient {...gradientProps} style={styles.header}>
+          <LinearGradient {...gradientProps!} style={styles.header}>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <Text style={styles.closeButtonText}>Done</Text>
             </TouchableOpacity>
