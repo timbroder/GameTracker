@@ -34,3 +34,5 @@ export type { UndoButtonProps } from './UndoButton';
 
 export { RawgIdMatcher } from './RawgIdMatcher';
 export type { RawgIdMatcherProps } from './RawgIdMatcher';
+
+export { Top10Graphic } from './Top10Graphic';
