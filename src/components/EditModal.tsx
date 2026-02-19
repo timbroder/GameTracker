@@ -12,7 +12,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   ScrollView,
 } from 'react-native';
@@ -113,14 +112,10 @@ export function EditModal({
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <ScrollView style={styles.scrollContainer} bounces={false}>
-          {/* Header with gradient */}
-          <LinearGradient {...gradientProps} style={styles.header}>
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Text style={styles.closeButtonText}>Done</Text>
-            </TouchableOpacity>
-
+          {/* Hero image edge-to-edge */}
+          <View style={styles.heroContainer}>
             {game.boxArtUrl ? (
               <FastImage
                 source={{
@@ -128,15 +123,25 @@ export function EditModal({
                   priority: FastImage.priority.high,
                   cache: FastImage.cacheControl.immutable,
                 }}
-                style={styles.boxArt}
+                style={styles.heroImage}
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
-              <View style={[styles.boxArt, styles.boxArtPlaceholder]}>
+              <LinearGradient {...gradientProps} style={styles.heroImage}>
                 <Text style={styles.placeholderText}>🎮</Text>
-              </View>
+              </LinearGradient>
             )}
 
+            {/* Close button overlay */}
+            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+              <View style={styles.closeButtonCircle}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Title bar with gradient */}
+          <LinearGradient {...gradientProps} style={styles.titleBar}>
             <Text style={styles.gameName} numberOfLines={2}>{game.name}</Text>
             <Text style={styles.platform}>{game.platform}</Text>
           </LinearGradient>
@@ -233,7 +238,7 @@ export function EditModal({
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -246,38 +251,44 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,
   },
-  header: {
-    paddingTop: 24,
-    paddingBottom: 24,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: 'hidden',
+  heroContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#111',
   },
-  closeButton: {
-    alignSelf: 'flex-end',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
-  },
-  closeButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  boxArt: {
-    width: 120,
-    height: 120,
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  boxArtPlaceholder: {
+  heroImage: {
+    width: '100%',
+    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  closeButton: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    zIndex: 10,
+  },
+  closeButtonCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: -1,
+  },
   placeholderText: {
-    fontSize: 48,
+    fontSize: 64,
+  },
+  titleBar: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
   gameName: {
     fontSize: 22,
