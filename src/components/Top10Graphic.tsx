@@ -24,6 +24,8 @@ interface Top10GraphicProps {
   shortList: Game[];
   toPlay: Game[];
   totalToPlayCount: number;
+  somedayMaybeCount: number;
+  completedCount: number;
   onReady: () => void;
 }
 
@@ -88,7 +90,7 @@ function GraphicRow({
   );
 }
 
-export function Top10Graphic({ shortList, toPlay, totalToPlayCount, onReady }: Top10GraphicProps) {
+export function Top10Graphic({ shortList, toPlay, totalToPlayCount, somedayMaybeCount, completedCount, onReady }: Top10GraphicProps) {
   const totalImages = useRef(0);
   const loadedImages = useRef(0);
   const hasCalledReady = useRef(false);
@@ -183,6 +185,18 @@ export function Top10Graphic({ shortList, toPlay, totalToPlayCount, onReady }: T
         </>
       )}
 
+      {/* Other section counts */}
+      {(somedayMaybeCount > 0 || completedCount > 0) && (
+        <View style={styles.summaryCounts}>
+          {somedayMaybeCount > 0 && (
+            <Text style={styles.summaryText}>Someday, Maybe ({somedayMaybeCount})</Text>
+          )}
+          {completedCount > 0 && (
+            <Text style={styles.summaryText}>Played ({completedCount})</Text>
+          )}
+        </View>
+      )}
+
       {/* Footer branding */}
       <View style={styles.footer}>
         <Text style={styles.footerText}>GameTracker</Text>
@@ -219,6 +233,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  summaryCounts: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  summaryText: {
+    color: '#555',
+    fontSize: 12,
+    fontWeight: '500',
   },
   footer: {
     paddingVertical: 12,

@@ -367,6 +367,8 @@ export function HomeScreen() {
             shortList={top10ShortListRef.current}
             toPlay={top10ToPlayRef.current}
             totalToPlayCount={totalToPlayCountRef.current}
+            somedayMaybeCount={sortedGames.somedayMaybe.length}
+            completedCount={sortedGames.completed.length}
             onReady={handleTop10Ready}
           />
         </View>
