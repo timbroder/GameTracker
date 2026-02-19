@@ -19,6 +19,7 @@ import Animated, {
   runOnJS,
   interpolate,
   Extrapolation,
+  type SharedValue,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useHaptics } from '../hooks';
@@ -33,6 +34,7 @@ export interface SwipeCardProps {
   onSwipeLeft: (game: DiscoveryGame) => void;
   onSwipeRight: (game: DiscoveryGame) => void;
   isTopCard?: boolean;
+  swipeX?: SharedValue<number>;
 }
 
 function SwipeCardComponent({
@@ -40,6 +42,7 @@ function SwipeCardComponent({
   onSwipeLeft,
   onSwipeRight,
   isTopCard = true,
+  swipeX: externalSwipeX,
 }: SwipeCardProps) {
   const haptics = useHaptics();
   const translateX = useSharedValue(0);
@@ -59,6 +62,9 @@ function SwipeCardComponent({
     .onUpdate((event) => {
       translateX.value = event.translationX;
       translateY.value = event.translationY * 0.5; // Dampen vertical movement
+      if (externalSwipeX) {
+        externalSwipeX.value = event.translationX;
+      }
 
       // Haptic feedback when crossing threshold
       const absX = Math.abs(event.translationX);
@@ -88,6 +94,9 @@ function SwipeCardComponent({
         translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
       hasTriggeredHaptic.value = false;
+      if (externalSwipeX) {
+        externalSwipeX.value = 0;
+      }
     });
 
   const cardStyle = useAnimatedStyle(() => {

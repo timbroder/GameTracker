@@ -4,8 +4,16 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { PlatformSelector, SwipeDeck, UndoButton } from '../components';
 import { useDiscovery } from '../hooks';
+
+const HIGHLIGHT_THRESHOLD = 40;
 
 export function DiscoveryScreen() {
   const {
@@ -22,6 +30,58 @@ export function DiscoveryScreen() {
     undo,
     loadMore,
   } = useDiscovery();
+
+  const swipeX = useSharedValue(0);
+
+  const skipButtonStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(
+          swipeX.value,
+          [-HIGHLIGHT_THRESHOLD * 3, -HIGHLIGHT_THRESHOLD, 0],
+          [1.2, 1.1, 1],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+    borderColor: `rgba(255, 107, 107, ${interpolate(
+      swipeX.value,
+      [-HIGHLIGHT_THRESHOLD * 3, -HIGHLIGHT_THRESHOLD, 0],
+      [1, 0.6, 0.4],
+      Extrapolation.CLAMP,
+    )})`,
+    backgroundColor: `rgba(255, 107, 107, ${interpolate(
+      swipeX.value,
+      [-HIGHLIGHT_THRESHOLD * 3, -HIGHLIGHT_THRESHOLD, 0],
+      [0.4, 0.2, 0.1],
+      Extrapolation.CLAMP,
+    )})`,
+  }));
+
+  const playedButtonStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        scale: interpolate(
+          swipeX.value,
+          [0, HIGHLIGHT_THRESHOLD, HIGHLIGHT_THRESHOLD * 3],
+          [1, 1.1, 1.2],
+          Extrapolation.CLAMP,
+        ),
+      },
+    ],
+    borderColor: `rgba(78, 203, 113, ${interpolate(
+      swipeX.value,
+      [0, HIGHLIGHT_THRESHOLD, HIGHLIGHT_THRESHOLD * 3],
+      [0.4, 0.6, 1],
+      Extrapolation.CLAMP,
+    )})`,
+    backgroundColor: `rgba(78, 203, 113, ${interpolate(
+      swipeX.value,
+      [0, HIGHLIGHT_THRESHOLD, HIGHLIGHT_THRESHOLD * 3],
+      [0.1, 0.2, 0.4],
+      Extrapolation.CLAMP,
+    )})`,
+  }));
 
   // Platform selection view
   if (state === 'platform_selection') {
@@ -113,19 +173,22 @@ export function DiscoveryScreen() {
           onSwipeRight={handleSwipeRight}
           onNeedMore={loadMore}
           loading={loading}
+          swipeX={swipeX}
         />
       </View>
 
       {/* Action buttons */}
       <View style={styles.buttonsContainer}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.skipButton]}
-          onPress={() => games[0] && handleSwipeLeft(games[0])}
-          disabled={games.length === 0}
-        >
-          <Text style={styles.actionButtonIcon}>✕</Text>
-          <Text style={styles.actionButtonText}>Skip</Text>
-        </TouchableOpacity>
+        <Animated.View style={[styles.actionButton, styles.skipButton, skipButtonStyle]}>
+          <TouchableOpacity
+            style={styles.actionButtonInner}
+            onPress={() => games[0] && handleSwipeLeft(games[0])}
+            disabled={games.length === 0}
+          >
+            <Text style={styles.actionButtonIcon}>✕</Text>
+            <Text style={styles.actionButtonText}>Skip</Text>
+          </TouchableOpacity>
+        </Animated.View>
         <TouchableOpacity
           style={[styles.actionButton, styles.toPlayButton]}
           onPress={() => games[0] && handleAddToPlay(games[0])}
@@ -134,14 +197,16 @@ export function DiscoveryScreen() {
           <Text style={styles.actionButtonIcon}>+</Text>
           <Text style={styles.actionButtonText}>Add</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.playedButton]}
-          onPress={() => games[0] && handleSwipeRight(games[0])}
-          disabled={games.length === 0}
-        >
-          <Text style={styles.actionButtonIcon}>✓</Text>
-          <Text style={styles.actionButtonText}>Played</Text>
-        </TouchableOpacity>
+        <Animated.View style={[styles.actionButton, styles.playedButton, playedButtonStyle]}>
+          <TouchableOpacity
+            style={styles.actionButtonInner}
+            onPress={() => games[0] && handleSwipeRight(games[0])}
+            disabled={games.length === 0}
+          >
+            <Text style={styles.actionButtonIcon}>✓</Text>
+            <Text style={styles.actionButtonText}>Played</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
 
       <UndoButton onPress={undo} visible={canUndo} />
@@ -246,6 +311,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
+  },
+  actionButtonInner: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   skipButton: {
     borderColor: '#FF6B6B',
