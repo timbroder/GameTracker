@@ -23,6 +23,7 @@ const GRAPHIC_WIDTH = 390;
 interface Top10GraphicProps {
   shortList: Game[];
   toPlay: Game[];
+  totalToPlayCount: number;
   onReady: () => void;
 }
 
@@ -87,7 +88,7 @@ function GraphicRow({
   );
 }
 
-export function Top10Graphic({ shortList, toPlay, onReady }: Top10GraphicProps) {
+export function Top10Graphic({ shortList, toPlay, totalToPlayCount, onReady }: Top10GraphicProps) {
   const totalImages = useRef(0);
   const loadedImages = useRef(0);
   const hasCalledReady = useRef(false);
@@ -166,7 +167,7 @@ export function Top10Graphic({ shortList, toPlay, onReady }: Top10GraphicProps) 
         <>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>
-              TO PLAY ({toPlay.length})
+              TO PLAY ({totalToPlayCount})
             </Text>
           </View>
           {toPlay.map((game, idx) => (

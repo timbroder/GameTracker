@@ -50,6 +50,7 @@ export function HomeScreen() {
   const top10Ref = useRef<View>(null);
   const top10ShortListRef = useRef<Game[]>([]);
   const top10ToPlayRef = useRef<Game[]>([]);
+  const totalToPlayCountRef = useRef(0);
 
   const handleScreenshot = useCallback(() => {
     if (!isFocused) return;
@@ -67,6 +68,7 @@ export function HomeScreen() {
           const remaining = 10 - sliceCount;
           top10ShortListRef.current = shortList.slice(0, sliceCount);
           top10ToPlayRef.current = unplayed.slice(0, Math.max(0, remaining));
+          totalToPlayCountRef.current = unplayed.length;
           setShowTop10Graphic(true);
         },
       },
@@ -364,6 +366,7 @@ export function HomeScreen() {
           <Top10Graphic
             shortList={top10ShortListRef.current}
             toPlay={top10ToPlayRef.current}
+            totalToPlayCount={totalToPlayCountRef.current}
             onReady={handleTop10Ready}
           />
         </View>
