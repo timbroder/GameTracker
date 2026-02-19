@@ -5,7 +5,7 @@
  * Allows viewing game info and deleting the game.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import {
   Modal,
   View,
@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
+  PanResponder,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import type { Game } from '../types';
@@ -53,6 +54,19 @@ export function EditModal({
 }: EditModalProps) {
   const haptics = useHaptics();
   const insets = useSafeAreaInsets();
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        gestureState.dy > 15 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 80) {
+          onClose();
+        }
+      },
+    }),
+  ).current;
 
   const handleDelete = useCallback(() => {
     if (game) {
@@ -117,7 +131,7 @@ export function EditModal({
       <View style={styles.container}>
         <ScrollView style={styles.scrollContainer} bounces={false}>
           {/* Hero image edge-to-edge */}
-          <View style={styles.heroContainer}>
+          <View style={styles.heroContainer} {...panResponder.panHandlers}>
             {game.boxArtUrl ? (
               <FastImage
                 source={{
