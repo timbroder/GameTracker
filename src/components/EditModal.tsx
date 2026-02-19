@@ -25,6 +25,7 @@ import {
   getPositionalBlue,
 } from '../utils/colors';
 import LinearGradient from 'react-native-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHaptics } from '../hooks/useHaptics';
 
 const MAX_SHORT_LIST = 5;
@@ -51,6 +52,7 @@ export function EditModal({
   onToggleSomedayMaybe,
 }: EditModalProps) {
   const haptics = useHaptics();
+  const insets = useSafeAreaInsets();
 
   const handleDelete = useCallback(() => {
     if (game) {
@@ -133,7 +135,7 @@ export function EditModal({
             )}
 
             {/* Close button overlay */}
-            <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+            <TouchableOpacity style={[styles.closeButton, { top: insets.top + 8 }]} onPress={handleClose}>
               <View style={styles.closeButtonCircle}>
                 <Text style={styles.closeButtonText}>✕</Text>
               </View>
@@ -264,7 +266,6 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: 'absolute',
-    top: 14,
     right: 14,
     zIndex: 10,
   },
