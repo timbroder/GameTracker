@@ -1,0 +1,114 @@
+# App Store Connect Metadata for GameTracker
+# Reference: https://developer.apple.com/help/app-store-connect/create-an-app-record/
+
+# ── App Identity ──────────────────────────────────────────────
+app_name: "GameTracker"
+subtitle: "Track & Discover Video Games"  # max 30 chars
+bundle_id: "com.taco23.gametrackerrrr"
+
+# ── Category ──────────────────────────────────────────────────
+primary_category: "Entertainment"
+secondary_category: "Utilities"
+
+# ── Description (max 4000 chars) ──────────────────────────────
+description: |
+  GameTracker helps you organize your video game collection and discover classic titles across 20+ platforms — from NES to PS5.
+
+  YOUR GAMES, BEAUTIFULLY ORGANIZED
+  Keep track of what you're playing, what's next, and what you've finished. Games are sorted into clear sections:
+  - Short List: Your top priorities (up to 5)
+  - To Play: Games you plan to play next
+  - Someday, Maybe: Your backlog for later
+  - Completed: Games you've finished
+
+  Each section uses a unique color gradient inspired by the Clear app, making your collection as fun to look at as it is to manage.
+
+  DISCOVER HIDDEN GEMS
+  Swipe through games Tinder-style to find your next favorite. Browse titles from 20+ platforms including NES, SNES, PlayStation, Xbox, Nintendo Switch, and more. Swipe right to add, left to dismiss — it's that simple.
+
+  SEARCH & ADD
+  Search the RAWG database of 800,000+ games. Find any title, pick your platform, and add it to your collection with box art included automatically.
+
+  SHARE YOUR TOP 10
+  Generate a shareable graphic of your top games — perfect for social media or comparing lists with friends.
+
+  IMPORT & EXPORT
+  Back up your collection as CSV. Import games from spreadsheets with automatic duplicate detection.
+
+  DRAG & DROP
+  Reorder your games with intuitive drag-and-drop. Swipe to quickly move games between sections or mark them complete.
+
+  KEY FEATURES
+  - Beautiful position-based color gradients for each section
+  - Tinder-style game discovery across 20+ platforms
+  - Search 800,000+ games via the RAWG database
+  - Drag-and-drop reordering
+  - Swipe gestures for quick actions
+  - CSV import and export
+  - Shareable Top 10 graphic
+  - Cloud backup support
+  - Dark mode UI
+  - Bring your own RAWG API key (free at rawg.io)
+
+# ── Promotional Text (max 170 chars, can be updated without review) ──
+promotional_text: "Organize your game collection and discover classics across 20+ platforms with Tinder-style swiping."
+
+# ── Keywords (max 100 chars total, comma separated) ──────────
+keywords: "game tracker,video games,backlog,collection,retro,gaming,wishlist,discovery,NES,PlayStation"
+
+# ── What's New (max 4000 chars) ──────────────────────────────
+whats_new: |
+  Initial release! Track your games, discover classics, and share your top 10.
+
+# ── Support & Marketing ──────────────────────────────────────
+support_url: "https://github.com/timbroder/GameTracker/issues"
+marketing_url: ""  # optional
+privacy_policy_url: ""  # TODO: host PRIVACY_POLICY.md and add URL here
+
+# ── Age Rating ────────────────────────────────────────────────
+# All answers "None" / "No" — the app has no objectionable content
+age_rating:
+  cartoon_fantasy_violence: "none"
+  realistic_violence: "none"
+  prolonged_graphic_sadistic_violence: "none"
+  profanity_crude_humor: "none"
+  mature_suggestive_themes: "none"
+  horror_fear_themes: "none"
+  medical_treatment_info: "none"
+  alcohol_tobacco_drug_use: "none"
+  simulated_gambling: "none"
+  sexual_content_nudity: "none"
+  graphic_sexual_content_nudity: "none"
+  unrestricted_web_access: false
+  gambling_contests: false
+
+# Expected rating: 4+ (no objectionable content)
+
+# ── Screenshots ───────────────────────────────────────────────
+# Required sizes:
+#   - 6.7" (iPhone 15 Pro Max): 1290 x 2796 px
+#   - 6.5" (iPhone 11 Pro Max): 1242 x 2688 px
+#   - Minimum 3, maximum 10 per size
+#
+# Suggested screenshot flow:
+#   1. Game list with color gradients (Short List + To Play sections)
+#   2. Discovery screen - swiping a game card
+#   3. Search results adding a game
+#   4. Completed section with grey gradients
+#   5. Top 10 share graphic
+#   6. Settings / Import-Export
+#
+# TODO: Capture screenshots on simulator and add to appstore/screenshots/
+
+# ── App Review Notes ──────────────────────────────────────────
+review_notes: |
+  This app requires a free RAWG API key to function. On first launch, users
+  are guided to create one at https://rawg.io/apidocs. A test key is not
+  provided because RAWG's free tier has generous limits and keys are
+  instantly available.
+
+# ── Copyright ─────────────────────────────────────────────────
+copyright: "2026 Taco23, LLC"
+
+# ── Pricing ───────────────────────────────────────────────────
+price: "Free"
