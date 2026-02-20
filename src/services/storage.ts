@@ -18,7 +18,7 @@ export async function saveGames(games: Game[]): Promise<void> {
     const jsonValue = JSON.stringify(games);
     await AsyncStorage.setItem(STORAGE_KEYS.GAMES, jsonValue);
   } catch (error) {
-    console.error('Error saving games:', error);
+    if (__DEV__) console.error('Error saving games:', error);
     throw new Error('Failed to save games');
   }
 }
@@ -34,7 +34,7 @@ export async function loadGames(): Promise<Game[]> {
     }
     return JSON.parse(jsonValue) as Game[];
   } catch (error) {
-    console.error('Error loading games:', error);
+    if (__DEV__) console.error('Error loading games:', error);
     throw new Error('Failed to load games');
   }
 }
@@ -49,7 +49,7 @@ export async function savePreferences(
     const jsonValue = JSON.stringify(preferences);
     await AsyncStorage.setItem(STORAGE_KEYS.USER_PREFS, jsonValue);
   } catch (error) {
-    console.error('Error saving preferences:', error);
+    if (__DEV__) console.error('Error saving preferences:', error);
     throw new Error('Failed to save preferences');
   }
 }
@@ -67,7 +67,7 @@ export async function loadPreferences(): Promise<UserPreferences> {
     const stored = JSON.parse(jsonValue) as Partial<UserPreferences>;
     return { ...DEFAULT_PREFERENCES, ...stored };
   } catch (error) {
-    console.error('Error loading preferences:', error);
+    if (__DEV__) console.error('Error loading preferences:', error);
     return DEFAULT_PREFERENCES;
   }
 }
@@ -80,7 +80,7 @@ export async function clearAllData(): Promise<void> {
     const keys = Object.values(STORAGE_KEYS);
     await AsyncStorage.multiRemove(keys);
   } catch (error) {
-    console.error('Error clearing data:', error);
+    if (__DEV__) console.error('Error clearing data:', error);
     throw new Error('Failed to clear data');
   }
 }
@@ -92,7 +92,7 @@ export async function getLastSync(): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC);
   } catch (error) {
-    console.error('Error getting last sync:', error);
+    if (__DEV__) console.error('Error getting last sync:', error);
     return null;
   }
 }
@@ -104,7 +104,7 @@ export async function setLastSync(timestamp: string): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC, timestamp);
   } catch (error) {
-    console.error('Error setting last sync:', error);
+    if (__DEV__) console.error('Error setting last sync:', error);
     throw new Error('Failed to set last sync');
   }
 }
@@ -125,7 +125,7 @@ export async function addPendingDeletion(gameId: string): Promise<void> {
       );
     }
   } catch (error) {
-    console.error('Error adding pending deletion:', error);
+    if (__DEV__) console.error('Error adding pending deletion:', error);
     // Don't throw - this is a best-effort operation
   }
 }
@@ -141,7 +141,7 @@ export async function getPendingDeletions(): Promise<string[]> {
     }
     return JSON.parse(jsonValue) as string[];
   } catch (error) {
-    console.error('Error getting pending deletions:', error);
+    if (__DEV__) console.error('Error getting pending deletions:', error);
     return [];
   }
 }
@@ -159,7 +159,7 @@ export async function clearPendingDeletions(gameIds: string[]): Promise<void> {
       JSON.stringify(remaining),
     );
   } catch (error) {
-    console.error('Error clearing pending deletions:', error);
+    if (__DEV__) console.error('Error clearing pending deletions:', error);
     // Don't throw - this is a best-effort operation
   }
 }

@@ -146,7 +146,7 @@ export function useDiscovery(): UseDiscoveryReturn {
           setState('swiping');
         }
       } catch (error) {
-        console.error('[useDiscovery] Load error:', error);
+        if (__DEV__) console.error('[useDiscovery] Load error:', error);
         setState('error');
       } finally {
         setLoading(false);

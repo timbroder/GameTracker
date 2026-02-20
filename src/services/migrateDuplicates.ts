@@ -39,7 +39,7 @@ async function fetchReleaseDate(rawgId: number): Promise<string | null> {
     const details = await getGameDetails(rawgId);
     return details.released || null;
   } catch (error) {
-    console.error(`[Migration] Failed to fetch release date for rawgId ${rawgId}:`, error);
+    if (__DEV__) console.error(`[Migration] Failed to fetch release date for rawgId ${rawgId}:`, error);
     return null;
   }
 }
@@ -74,7 +74,7 @@ export async function runDuplicateMigration(): Promise<{
       return { success: true, message: 'Migration already completed' };
     }
 
-    console.log('[Migration] Starting duplicate cleanup migration...');
+    if (__DEV__) console.log('[Migration] Starting duplicate cleanup migration...');
 
     const games = await loadGames();
     if (games.length === 0) {
@@ -98,19 +98,19 @@ export async function runDuplicateMigration(): Promise<{
     );
 
     if (duplicateGroups.length === 0) {
-      console.log('[Migration] No duplicates found');
+      if (__DEV__) console.log('[Migration] No duplicates found');
       await markMigrationComplete();
       return { success: true, message: 'No duplicates found', removedCount: 0 };
     }
 
-    console.log(`[Migration] Found ${duplicateGroups.length} duplicate groups`);
+    if (__DEV__) console.log(`[Migration] Found ${duplicateGroups.length} duplicate groups`);
 
     // Track which games to keep and which to remove
     const gamesToRemove = new Set<string>();
 
     // Process each duplicate group
     for (const [name, groupGames] of duplicateGroups) {
-      console.log(`[Migration] Processing "${name}" (${groupGames.length} copies)`);
+      if (__DEV__) console.log(`[Migration] Processing "${name}" (${groupGames.length} copies)`);
 
       // Fetch release dates for all games in the group
       const gamesWithDates: GameWithReleaseDate[] = await Promise.all(
@@ -129,12 +129,12 @@ export async function runDuplicateMigration(): Promise<{
 
       // Keep the first one (latest release), mark others for removal
       const [keeper, ...toRemove] = gamesWithDates;
-      console.log(
+      if (__DEV__) console.log(
         `[Migration] Keeping "${keeper.name}" on ${keeper.platform} (released: ${keeper.releaseDate || 'unknown'})`
       );
 
       for (const game of toRemove) {
-        console.log(
+        if (__DEV__) console.log(
           `[Migration] Removing "${game.name}" on ${game.platform} (released: ${game.releaseDate || 'unknown'})`
         );
         gamesToRemove.add(game.id);
@@ -151,7 +151,7 @@ export async function runDuplicateMigration(): Promise<{
     await markMigrationComplete();
 
     const removedCount = gamesToRemove.size;
-    console.log(`[Migration] Completed. Removed ${removedCount} duplicate games.`);
+    if (__DEV__) console.log(`[Migration] Completed. Removed ${removedCount} duplicate games.`);
 
     return {
       success: true,
@@ -159,7 +159,7 @@ export async function runDuplicateMigration(): Promise<{
       removedCount,
     };
   } catch (error) {
-    console.error('[Migration] Failed:', error);
+    if (__DEV__) console.error('[Migration] Failed:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Migration failed',
@@ -172,5 +172,5 @@ export async function runDuplicateMigration(): Promise<{
  */
 export async function resetDuplicateMigration(): Promise<void> {
   await AsyncStorage.removeItem(MIGRATION_KEY);
-  console.log('[Migration] Migration reset');
+  if (__DEV__) console.log('[Migration] Migration reset');
 }

@@ -94,7 +94,7 @@ async function withRetry<T>(
       // Don't wait after the last attempt
       if (attempt < maxRetries) {
         const delay = INITIAL_RETRY_DELAY * Math.pow(2, attempt);
-        console.log(`[RAWG API] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        if (__DEV__) console.log(`[RAWG API] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
         await sleep(delay);
       }
     }
