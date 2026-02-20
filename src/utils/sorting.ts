@@ -17,26 +17,32 @@ export interface SortedGames {
  * - Completed: sorted by completedDate descending (most recent first)
  */
 export function sortGames(games: Game[]): SortedGames {
-  const shortList = games
-    .filter((game) => !game.isCompleted && game.isShortListed)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  // Single-pass bucketing instead of 4 separate filter passes
+  const shortList: Game[] = [];
+  const unplayed: Game[] = [];
+  const somedayMaybe: Game[] = [];
+  const completed: Game[] = [];
 
-  const unplayed = games
-    .filter((game) => !game.isCompleted && !game.isShortListed && !game.isSomedayMaybe)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+  for (const game of games) {
+    if (game.isCompleted) {
+      completed.push(game);
+    } else if (game.isShortListed) {
+      shortList.push(game);
+    } else if (game.isSomedayMaybe) {
+      somedayMaybe.push(game);
+    } else {
+      unplayed.push(game);
+    }
+  }
 
-  const somedayMaybe = games
-    .filter((game) => !game.isCompleted && !game.isShortListed && game.isSomedayMaybe)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
-
-  const completed = games
-    .filter((game) => game.isCompleted)
-    .sort((a, b) => {
-      // Sort by completedDate descending (most recent first)
-      const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0;
-      const dateB = b.completedDate ? new Date(b.completedDate).getTime() : 0;
-      return dateB - dateA;
-    });
+  shortList.sort((a, b) => a.sortOrder - b.sortOrder);
+  unplayed.sort((a, b) => a.sortOrder - b.sortOrder);
+  somedayMaybe.sort((a, b) => a.sortOrder - b.sortOrder);
+  completed.sort((a, b) => {
+    const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0;
+    const dateB = b.completedDate ? new Date(b.completedDate).getTime() : 0;
+    return dateB - dateA;
+  });
 
   return { shortList, unplayed, somedayMaybe, completed };
 }

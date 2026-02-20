@@ -178,6 +178,14 @@ export function SearchResults({
           )}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
+          getItemLayout={(_data, index) => ({
+            length: 85,
+            offset: 85 * index,
+            index,
+          })}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews={true}
         />
       )}
 

@@ -191,3 +191,10 @@ export async function getCollectionGameNames(): Promise<Set<string>> {
   const names = games.map((g) => g.name.toLowerCase());
   return new Set(names);
 }
+
+/**
+ * Get all collection games (single load for batch filtering)
+ */
+export async function getCollectionGames(): Promise<Game[]> {
+  return loadGames();
+}

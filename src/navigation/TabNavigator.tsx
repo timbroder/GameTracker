@@ -7,7 +7,6 @@ import { Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeScreen, SettingsScreen } from '../screens';
 import { DiscoveryScreen } from '../screens/DiscoveryScreen';
-import { useSupabaseSync } from '../hooks';
 import type { RootTabParamList } from './types';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -36,22 +35,9 @@ function TabIcon({
 }
 
 /**
- * Background sync manager - handles auto-sync on launch and foreground
- * No UI, just triggers sync in the background
- */
-function useSyncOnLaunchAndForeground() {
-  useSupabaseSync({
-    syncOnLaunch: true,
-    syncOnForeground: true,
-  });
-}
-
-/**
  * Main tab navigator
  */
 export function TabNavigator() {
-  // Handle background sync on launch and foreground
-  useSyncOnLaunchAndForeground();
 
   return (
     <Tab.Navigator

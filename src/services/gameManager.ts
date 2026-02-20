@@ -234,7 +234,7 @@ export async function reorderWithSections(
   shortListIds: string[],
   toPlayIds: string[],
   somedayMaybeIds: string[] = [],
-): Promise<void> {
+): Promise<Game[]> {
   const games = await loadGames();
   const gameMap = new Map(games.map((g) => [g.id, g]));
 
@@ -267,6 +267,7 @@ export async function reorderWithSections(
 
   const updatedGames = Array.from(gameMap.values());
   await saveGames(updatedGames);
+  return updatedGames;
 }
 
 /**
@@ -279,6 +280,7 @@ export type GameSection = 'shortList' | 'toPlay' | 'somedayMaybe' | 'completed';
 export async function moveGameToSection(
   id: string,
   targetSection: GameSection,
+  position: 'top' | 'bottom' = 'bottom',
 ): Promise<Game> {
   const games = await loadGames();
   const index = games.findIndex((g) => g.id === id);
@@ -299,31 +301,43 @@ export async function moveGameToSection(
   switch (targetSection) {
     case 'shortList': {
       isShortListed = true;
-      const shortListGames = games.filter((g) => !g.isCompleted && g.isShortListed);
-      sortOrder = shortListGames.length > 0
-        ? Math.max(...shortListGames.map((g) => g.sortOrder)) + 1
-        : 0;
+      const shortListGames = games.filter((g) => g.id !== id && !g.isCompleted && g.isShortListed);
+      if (shortListGames.length === 0) {
+        sortOrder = 0;
+      } else if (position === 'top') {
+        sortOrder = Math.min(...shortListGames.map((g) => g.sortOrder)) - 1;
+      } else {
+        sortOrder = Math.max(...shortListGames.map((g) => g.sortOrder)) + 1;
+      }
       completedDate = undefined;
       break;
     }
     case 'toPlay': {
       const toPlayGames = games.filter(
-        (g) => !g.isCompleted && !g.isShortListed && !g.isSomedayMaybe
+        (g) => g.id !== id && !g.isCompleted && !g.isShortListed && !g.isSomedayMaybe
       );
-      sortOrder = toPlayGames.length > 0
-        ? Math.max(...toPlayGames.map((g) => g.sortOrder)) + 1
-        : 0;
+      if (toPlayGames.length === 0) {
+        sortOrder = 0;
+      } else if (position === 'top') {
+        sortOrder = Math.min(...toPlayGames.map((g) => g.sortOrder)) - 1;
+      } else {
+        sortOrder = Math.max(...toPlayGames.map((g) => g.sortOrder)) + 1;
+      }
       completedDate = undefined;
       break;
     }
     case 'somedayMaybe': {
       isSomedayMaybe = true;
       const somedayGames = games.filter(
-        (g) => !g.isCompleted && !g.isShortListed && g.isSomedayMaybe
+        (g) => g.id !== id && !g.isCompleted && !g.isShortListed && g.isSomedayMaybe
       );
-      sortOrder = somedayGames.length > 0
-        ? Math.max(...somedayGames.map((g) => g.sortOrder)) + 1
-        : 0;
+      if (somedayGames.length === 0) {
+        sortOrder = 0;
+      } else if (position === 'top') {
+        sortOrder = Math.min(...somedayGames.map((g) => g.sortOrder)) - 1;
+      } else {
+        sortOrder = Math.max(...somedayGames.map((g) => g.sortOrder)) + 1;
+      }
       completedDate = undefined;
       break;
     }

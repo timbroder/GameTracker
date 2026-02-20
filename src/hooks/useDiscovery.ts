@@ -8,7 +8,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { getGamesByPlatform } from '../services/rawgApi';
-import { addGameAsCompleted, addGameAsSomedayMaybe, isGameInCollection, getCollectionGameNames } from '../services/discoveryService';
+import { addGameAsCompleted, addGameAsSomedayMaybe, getCollectionGames } from '../services/discoveryService';
 import { useSeenGames } from './useSeenGames';
 import { useHaptics } from './useHaptics';
 import type { LegacyPlatform, DiscoveryGame, DiscoveryState } from '../types';
@@ -72,7 +72,15 @@ export function useDiscovery(): UseDiscoveryReturn {
     ): Promise<DiscoveryGame[]> => {
       const seenIds = seenGames.getSeenIdsForPlatform(platformId);
       const seenNames = seenGames.getSeenNames();
-      const collectionNames = await getCollectionGameNames();
+
+      // Load collection once and build both lookup structures
+      const collectionGames = await getCollectionGames();
+      const collectionNames = new Set(collectionGames.map((g) => g.name.toLowerCase()));
+      const collectionIds = new Set(
+        collectionGames
+          .filter((g) => g.platformId === platformId)
+          .map((g) => g.rawgId)
+      );
 
       const filtered: DiscoveryGame[] = [];
       for (const game of rawGames) {
@@ -88,8 +96,7 @@ export function useDiscovery(): UseDiscoveryReturn {
         if (collectionNames.has(gameName)) continue;
 
         // Skip if already in collection (exact rawgId + platformId match)
-        const inCollection = await isGameInCollection(game.id, platformId);
-        if (inCollection) continue;
+        if (collectionIds.has(game.id)) continue;
 
         filtered.push({
           id: game.id,

@@ -5,7 +5,7 @@
  * Allows viewing game info and deleting the game.
  */
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import {
   Modal,
   View,
@@ -108,18 +108,20 @@ export function EditModal({
     onClose();
   }, [onClose, haptics]);
 
+  // Memoize gradient (must be before early return to satisfy rules of hooks)
+  const gradientProps = useMemo(() => {
+    if (!game) return null;
+    let headerColor;
+    if (game.isCompleted) headerColor = getPositionalGrey(0, 1);
+    else if (game.isShortListed) headerColor = getPositionalGold(0, 1);
+    else if (game.isSomedayMaybe) headerColor = getPositionalBlue(0, 1);
+    else headerColor = getPositionalGreen(0, 1);
+    return getGradientProps(headerColor);
+  }, [game]);
+
   if (!game) {
     return null;
   }
-
-  // Use section-based colors: darkest shade (index 0, total 1) for the header
-  const getHeaderColor = () => {
-    if (game.isCompleted) return getPositionalGrey(0, 1);
-    if (game.isShortListed) return getPositionalGold(0, 1);
-    if (game.isSomedayMaybe) return getPositionalBlue(0, 1);
-    return getPositionalGreen(0, 1);
-  };
-  const gradientProps = getGradientProps(getHeaderColor());
 
   return (
     <Modal
@@ -143,7 +145,7 @@ export function EditModal({
                 resizeMode={FastImage.resizeMode.cover}
               />
             ) : (
-              <LinearGradient {...gradientProps} style={styles.heroImage}>
+              <LinearGradient {...gradientProps!} style={styles.heroImage}>
                 <Text style={styles.placeholderText}>🎮</Text>
               </LinearGradient>
             )}
@@ -157,7 +159,7 @@ export function EditModal({
           </View>
 
           {/* Title bar with gradient */}
-          <LinearGradient {...gradientProps} style={styles.titleBar}>
+          <LinearGradient {...gradientProps!} style={styles.titleBar}>
             <Text style={styles.gameName} numberOfLines={2}>{game.name}</Text>
             <Text style={styles.platform}>{game.platform}</Text>
           </LinearGradient>
