@@ -30,6 +30,8 @@ import { saveGames } from '../services/storage';
 import { setApiKey } from '../services/rawgApi';
 import { STORAGE_KEYS } from '../types/storage';
 
+const AUTHORIZED_SYNC_ID = 'b09fc31a-66d5-4edb-83af-a048831e3489';
+
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [isExporting, setIsExporting] = useState(false);
@@ -225,8 +227,8 @@ export function SettingsScreen() {
           </Text>
         </View>
 
-        {/* Sync Section */}
-        <View style={styles.section}>
+        {/* Sync Section — only visible for authorized user */}
+        {getSyncUserId() === AUTHORIZED_SYNC_ID && <View style={styles.section}>
           <Text style={styles.sectionTitle}>SYNC</Text>
           <TouchableOpacity
             style={styles.button}
@@ -278,7 +280,7 @@ export function SettingsScreen() {
               <Text style={styles.syncValue}>{formatLastSync()}</Text>
             </View>
           </View>
-        </View>
+        </View>}
 
         {/* API Key Section */}
         <View style={styles.section}>
@@ -324,7 +326,7 @@ export function SettingsScreen() {
             <Text style={styles.infoLabel}>Version</Text>
             <Text style={styles.infoValue}>{APP_VERSION}</Text>
           </View>
-          <TouchableOpacity
+          {getSyncUserId() === AUTHORIZED_SYNC_ID && <TouchableOpacity
             style={styles.infoRow}
             onPress={() => {
               Share.open({ message: getSyncUserId() }).catch(() => {});
@@ -335,7 +337,7 @@ export function SettingsScreen() {
             <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="middle">
               {getSyncUserId()}
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity>}
         </View>
       </ScrollView>
 
