@@ -15,6 +15,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -323,10 +324,19 @@ export function SettingsScreen() {
             <Text style={styles.infoLabel}>Version</Text>
             <Text style={styles.infoValue}>{APP_VERSION}</Text>
           </View>
-          <View style={styles.infoRow}>
+          <TouchableOpacity
+            style={styles.infoRow}
+            onPress={() => {
+              Clipboard.setString(getSyncUserId());
+              Alert.alert('Copied', 'Sync ID copied to clipboard.');
+            }}
+            activeOpacity={0.7}
+          >
             <Text style={styles.infoLabel}>Sync ID</Text>
-            <Text style={styles.infoValue} selectable>{getSyncUserId()}</Text>
-          </View>
+            <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="middle">
+              {getSyncUserId()}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
