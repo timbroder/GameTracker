@@ -3,7 +3,10 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Game } from '../types';
+import type { SortMode } from '../types/storage';
+import { STORAGE_KEYS } from '../types/storage';
 import {
   getGames,
   addGame as addGameService,
@@ -22,6 +25,7 @@ import { sortGames, type SortedGames } from '../utils/sorting';
 export interface UseGamesState {
   games: Game[];
   sortedGames: SortedGames;
+  sortMode: SortMode;
   loading: boolean;
   error: string | null;
 }
@@ -36,6 +40,7 @@ export interface UseGamesActions {
   reorderWithSections: (shortListIds: string[], toPlayIds: string[], somedayMaybeIds?: string[]) => Promise<void>;
   toggleShortList: (id: string) => Promise<Game>;
   moveGameToSection: (id: string, targetSection: GameSection, position?: 'top' | 'bottom') => Promise<Game>;
+  toggleSortMode: () => void;
   clearError: () => void;
 }
 
@@ -46,11 +51,28 @@ export type UseGamesReturn = UseGamesState & UseGamesActions;
  */
 export function useGames(): UseGamesReturn {
   const [games, setGames] = useState<Game[]>([]);
+  const [sortMode, setSortMode] = useState<SortMode>('manual');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Load sort mode preference from storage on mount
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEYS.SORT_MODE).then((value) => {
+      if (value === 'alphabetical') setSortMode('alphabetical');
+    });
+  }, []);
+
+  // Toggle between manual and alphabetical sort
+  const toggleSortMode = useCallback(() => {
+    setSortMode((prev) => {
+      const next: SortMode = prev === 'manual' ? 'alphabetical' : 'manual';
+      AsyncStorage.setItem(STORAGE_KEYS.SORT_MODE, next);
+      return next;
+    });
+  }, []);
+
   // Memoize sorted games
-  const sortedGames = useMemo(() => sortGames(games), [games]);
+  const sortedGames = useMemo(() => sortGames(games, sortMode), [games, sortMode]);
 
   // Load games from storage
   const loadGames = useCallback(async () => {
@@ -215,6 +237,7 @@ export function useGames(): UseGamesReturn {
   return {
     games,
     sortedGames,
+    sortMode,
     loading,
     error,
     loadGames,
@@ -226,6 +249,7 @@ export function useGames(): UseGamesReturn {
     reorderWithSections,
     toggleShortList,
     moveGameToSection,
+    toggleSortMode,
     clearError,
   };
 }
