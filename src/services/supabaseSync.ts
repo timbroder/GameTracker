@@ -21,6 +21,13 @@ import type { Game } from '../types';
 const DEVICE_ID_KEY = '@gametracker:device_id';
 const LAST_SYNC_KEY = '@gametracker:last_supabase_sync';
 
+/** Only this user ID is allowed to sync */
+const AUTHORIZED_SYNC_ID = 'b09fc31a-66d5-4edb-83af-a048831e3489';
+
+function isSyncAuthorized(): boolean {
+  return getSyncUserId() === AUTHORIZED_SYNC_ID;
+}
+
 let supabaseClient: SupabaseClient | null = null;
 
 // Database row type (snake_case from Supabase)
@@ -161,6 +168,10 @@ export async function checkSupabaseAvailability(): Promise<{
   message: string;
 }> {
   try {
+    if (!isSyncAuthorized()) {
+      return { available: false, message: 'Sync not available' };
+    }
+
     const config = getSupabaseConfig();
     if (__DEV__) {
       console.log('[Supabase Sync] Config URL:', config.url);

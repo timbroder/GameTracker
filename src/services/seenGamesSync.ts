@@ -14,6 +14,13 @@ import { STORAGE_KEYS, type SeenGame } from '../types';
 
 let supabaseClient: SupabaseClient | null = null;
 
+/** Only this user ID is allowed to sync */
+const AUTHORIZED_SYNC_ID = 'b09fc31a-66d5-4edb-83af-a048831e3489';
+
+function isSyncAuthorized(): boolean {
+  return getSyncUserId() === AUTHORIZED_SYNC_ID;
+}
+
 // Database row type (snake_case from Supabase)
 interface SeenGameRow {
   id: string;
@@ -162,6 +169,8 @@ export async function getSeenGameNames(): Promise<Set<string>> {
  */
 export async function checkSeenGamesTableAvailable(): Promise<boolean> {
   try {
+    if (!isSyncAuthorized()) return false;
+
     const config = getSupabaseConfig();
     if (!config.url || !config.anonKey || config.anonKey === 'YOUR_ANON_KEY_HERE') {
       return false;
