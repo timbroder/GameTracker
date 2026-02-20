@@ -5,7 +5,7 @@ module.exports = {
     '@testing-library/react-native/extend-expect',
   ],
   transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-gesture-handler|react-native-reanimated|react-native-screens|react-native-safe-area-context|@react-native-async-storage|react-native-linear-gradient|react-native-haptic-feedback|react-native-draggable-flatlist)/)',
+    'node_modules/(?!(react-native|@react-native|@react-navigation|react-native-gesture-handler|react-native-reanimated|react-native-screens|react-native-safe-area-context|@react-native-async-storage|react-native-linear-gradient|react-native-haptic-feedback|react-native-draggable-flatlist|react-native-view-shot)/)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   moduleNameMapper: {
@@ -16,6 +16,7 @@ module.exports = {
     '^react-native-share$': '<rootDir>/__mocks__/react-native-share.js',
     '^react-native-fs$': '<rootDir>/__mocks__/react-native-fs.js',
     '^react-native-document-picker$': '<rootDir>/__mocks__/react-native-document-picker.js',
+    '^react-native-view-shot$': '<rootDir>/__mocks__/react-native-view-shot.js',
   },
   testPathIgnorePatterns: [
     '/node_modules/',

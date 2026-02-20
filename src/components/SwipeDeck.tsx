@@ -9,7 +9,7 @@
 
 import React, { memo, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Text, ActivityIndicator } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, type SharedValue } from 'react-native-reanimated';
 import { SwipeCard } from './SwipeCard';
 import type { DiscoveryGame } from '../types';
 
@@ -22,6 +22,7 @@ export interface SwipeDeckProps {
   onSwipeRight: (game: DiscoveryGame) => void;
   onNeedMore: () => void;
   loading?: boolean;
+  swipeX?: SharedValue<number>;
 }
 
 function SwipeDeckComponent({
@@ -30,6 +31,7 @@ function SwipeDeckComponent({
   onSwipeRight,
   onNeedMore,
   loading = false,
+  swipeX,
 }: SwipeDeckProps) {
   // Take only visible cards
   const visibleGames = games.slice(0, VISIBLE_CARDS);
@@ -110,6 +112,7 @@ function SwipeDeckComponent({
                 onSwipeLeft={handleSwipeLeft}
                 onSwipeRight={handleSwipeRight}
                 isTopCard={isTop}
+                swipeX={isTop ? swipeX : undefined}
               />
             </Animated.View>
           );
