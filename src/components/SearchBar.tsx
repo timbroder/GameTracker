@@ -110,7 +110,7 @@ export function SearchBar({
       </View>
       {isActive && (
         <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
       )}
     </Animated.View>
@@ -125,7 +125,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 0,
     backgroundColor: '#111',
     borderTopWidth: 1,
     borderTopColor: '#333',
