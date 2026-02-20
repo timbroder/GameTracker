@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   LAST_SYNC: '@gametracker:lastSync',
   USER_PREFS: '@gametracker:prefs',
   PENDING_DELETIONS: '@gametracker:pendingDeletions',
+  RAWG_API_KEY: '@gametracker:rawg_api_key',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

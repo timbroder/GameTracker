@@ -38,7 +38,7 @@ export async function runSomedayMaybeMigration(): Promise<{
       return { success: true, message: 'Migration already completed' };
     }
 
-    console.log('[Migration] Starting Someday Maybe migration...');
+    if (__DEV__) console.log('[Migration] Starting Someday Maybe migration...');
 
     const games = await loadGames();
     if (games.length === 0) {
@@ -61,7 +61,7 @@ export async function runSomedayMaybeMigration(): Promise<{
 
     await markMigrationComplete();
 
-    console.log(`[Migration] Someday Maybe migration completed. Migrated ${migratedCount} games.`);
+    if (__DEV__) console.log(`[Migration] Someday Maybe migration completed. Migrated ${migratedCount} games.`);
 
     return {
       success: true,
@@ -69,7 +69,7 @@ export async function runSomedayMaybeMigration(): Promise<{
       migratedCount,
     };
   } catch (error) {
-    console.error('[Migration] Someday Maybe migration failed:', error);
+    if (__DEV__) console.error('[Migration] Someday Maybe migration failed:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Migration failed',

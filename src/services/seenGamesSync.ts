@@ -75,7 +75,7 @@ export async function loadSeenGames(): Promise<SeenGame[]> {
     if (!json) return [];
     return JSON.parse(json);
   } catch (error) {
-    console.error('[SeenGames] Failed to load from storage:', error);
+    if (__DEV__) console.error('[SeenGames] Failed to load from storage:', error);
     return [];
   }
 }
@@ -87,7 +87,7 @@ export async function saveSeenGames(seenGames: SeenGame[]): Promise<void> {
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.SEEN_GAMES, JSON.stringify(seenGames));
   } catch (error) {
-    console.error('[SeenGames] Failed to save to storage:', error);
+    if (__DEV__) console.error('[SeenGames] Failed to save to storage:', error);
     throw error;
   }
 }
@@ -172,13 +172,13 @@ export async function checkSeenGamesTableAvailable(): Promise<boolean> {
 
     // Table doesn't exist
     if (error && error.code === '42P01') {
-      console.log('[SeenGames] Table not found. Run migration 002.');
+      if (__DEV__) console.log('[SeenGames] Table not found. Run migration 002.');
       return false;
     }
 
     return !error;
   } catch (error) {
-    console.error('[SeenGames] Table check error:', error);
+    if (__DEV__) console.error('[SeenGames] Table check error:', error);
     return false;
   }
 }
@@ -253,7 +253,7 @@ export async function syncSeenGames(): Promise<{
       downloaded: newFromCloud.length,
     };
   } catch (error) {
-    console.error('[SeenGames] Sync error:', error);
+    if (__DEV__) console.error('[SeenGames] Sync error:', error);
     return {
       success: false,
       message: error instanceof Error ? error.message : 'Sync failed',
@@ -278,10 +278,10 @@ export async function uploadSeenGame(seenGame: SeenGame): Promise<void> {
       .upsert(row, { onConflict: 'user_id,rawg_id,platform_id' });
 
     if (error) {
-      console.error('[SeenGames] Upload error:', error);
+      if (__DEV__) console.error('[SeenGames] Upload error:', error);
     }
   } catch (error) {
-    console.error('[SeenGames] Upload error:', error);
+    if (__DEV__) console.error('[SeenGames] Upload error:', error);
   }
 }
 
@@ -307,9 +307,9 @@ export async function deleteSeenGameFromCloud(
       .eq('platform_id', platformId);
 
     if (error) {
-      console.error('[SeenGames] Delete error:', error);
+      if (__DEV__) console.error('[SeenGames] Delete error:', error);
     }
   } catch (error) {
-    console.error('[SeenGames] Delete error:', error);
+    if (__DEV__) console.error('[SeenGames] Delete error:', error);
   }
 }

@@ -13,10 +13,12 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  TextInput,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { APP_VERSION } from '../config';
+import { APP_VERSION, getSyncUserId } from '../config';
 import { exportAndShareCSV } from '../services/csvExport';
 import { importGamesFromCSV, refreshAllImages } from '../services/csvImport';
 import { useSupabaseSync } from '../hooks';
@@ -24,6 +26,8 @@ import { RawgIdMatcher } from '../components';
 import { pick, types } from 'react-native-document-picker';
 import * as gameManager from '../services/gameManager';
 import { saveGames } from '../services/storage';
+import { setApiKey } from '../services/rawgApi';
+import { STORAGE_KEYS } from '../types/storage';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -275,12 +279,53 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {/* API Key Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API KEY</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => {
+              Alert.prompt(
+                'Change RAWG API Key',
+                'Enter your new RAWG API key. Get one free at rawg.io/apidocs',
+                async (newKey) => {
+                  if (!newKey?.trim()) return;
+                  const trimmed = newKey.trim();
+                  try {
+                    const response = await fetch(
+                      `https://api.rawg.io/api/games?key=${trimmed}&page_size=1`,
+                    );
+                    if (response.status === 401) {
+                      Alert.alert('Invalid Key', 'That API key was not accepted by RAWG.');
+                      return;
+                    }
+                    await AsyncStorage.setItem(STORAGE_KEYS.RAWG_API_KEY, trimmed);
+                    setApiKey(trimmed);
+                    Alert.alert('Updated', 'RAWG API key has been updated.');
+                  } catch {
+                    Alert.alert('Error', 'Could not validate key. Check your connection.');
+                  }
+                },
+                'plain-text',
+              );
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonIcon}>🔑</Text>
+            <Text style={styles.buttonText}>Change RAWG API Key</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* About Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ABOUT</Text>
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Version</Text>
             <Text style={styles.infoValue}>{APP_VERSION}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Sync ID</Text>
+            <Text style={styles.infoValue} selectable>{getSyncUserId()}</Text>
           </View>
         </View>
       </ScrollView>

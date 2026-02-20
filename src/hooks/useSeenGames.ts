@@ -80,9 +80,9 @@ export function useSeenGames(): UseSeenGamesReturn {
         setSeenGameNamesSet(buildNamesSet(games));
 
         // Sync with Supabase in background
-        syncSeenGames().catch(console.error);
+        syncSeenGames().catch(() => {});
       } catch (error) {
-        console.error('[useSeenGames] Load error:', error);
+        if (__DEV__) console.error('[useSeenGames] Load error:', error);
       } finally {
         setLoading(false);
       }
@@ -124,7 +124,7 @@ export function useSeenGames(): UseSeenGamesReturn {
       }
 
       // Upload to cloud in background
-      uploadSeenGame(newSeenGame).catch(console.error);
+      uploadSeenGame(newSeenGame).catch(() => {});
 
       return newSeenGame;
     },
@@ -150,7 +150,7 @@ export function useSeenGames(): UseSeenGamesReturn {
     });
 
     // Delete from cloud in background
-    deleteSeenGameFromCloud(rawgId, platformId).catch(console.error);
+    deleteSeenGameFromCloud(rawgId, platformId).catch(() => {});
   }, []);
 
   // Check if a game has been seen
@@ -185,7 +185,7 @@ export function useSeenGames(): UseSeenGamesReturn {
       setSeenGameIds(buildLookupMap(games));
       setSeenGameNamesSet(buildNamesSet(games));
     } catch (error) {
-      console.error('[useSeenGames] Sync error:', error);
+      if (__DEV__) console.error('[useSeenGames] Sync error:', error);
     } finally {
       setSyncing(false);
     }
