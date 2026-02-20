@@ -63,7 +63,7 @@ export function SearchBar({
         const offset = restingBottomY.current - keyboardTopY;
         Animated.timing(bottomPosition, {
           toValue: Math.max(0, offset),
-          duration: event.duration || 250,
+          duration: 100,
           useNativeDriver: false,
         }).start();
       }
@@ -71,10 +71,10 @@ export function SearchBar({
 
     const keyboardWillHide = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      (event) => {
+      () => {
         Animated.timing(bottomPosition, {
           toValue: 0,
-          duration: event.duration || 250,
+          duration: 100,
           useNativeDriver: false,
         }).start();
       }
