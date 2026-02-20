@@ -9,7 +9,7 @@ export { HOT_UPDATER_URL };
 /**
  * App version - bump this when deploying OTA updates
  */
-export const APP_VERSION = '1.0.54';
+export const APP_VERSION = '1.0.55';
 
 /**
  * Get Supabase configuration
