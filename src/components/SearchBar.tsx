@@ -1,8 +1,8 @@
 /**
  * SearchBar - Persistent search bar at the bottom of the screen
  *
- * Uses InputAccessoryView on iOS to dock flush against the keyboard
- * with zero gap. Falls back to manual positioning on Android.
+ * Uses measureInWindow to calculate exact keyboard offset, ensuring
+ * zero gap between the search bar and keyboard on any device.
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
@@ -13,8 +13,8 @@ import {
   TouchableOpacity,
   Text,
   Keyboard,
-  InputAccessoryView,
   Platform,
+  Animated,
 } from 'react-native';
 
 export interface SearchBarProps {
@@ -25,8 +25,6 @@ export interface SearchBarProps {
   isActive: boolean;
 }
 
-const INPUT_ACCESSORY_ID = 'searchBarAccessory';
-
 export function SearchBar({
   value,
   onChangeText,
@@ -35,6 +33,9 @@ export function SearchBar({
   isActive,
 }: SearchBarProps) {
   const inputRef = useRef<TextInput>(null);
+  const containerRef = useRef<View>(null);
+  const bottomPosition = useRef(new Animated.Value(0)).current;
+  const restingBottomY = useRef(0);
 
   useEffect(() => {
     if (isActive && inputRef.current) {
@@ -42,13 +43,65 @@ export function SearchBar({
     }
   }, [isActive]);
 
+  // Measure the resting screen position once on initial layout
+  const measured = useRef(false);
+  const handleLayout = useCallback(() => {
+    if (measured.current) return;
+    measured.current = true;
+    requestAnimationFrame(() => {
+      containerRef.current?.measureInWindow((_x, y, _width, height) => {
+        restingBottomY.current = y + height;
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    const keyboardWillShow = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (event) => {
+        const keyboardTopY = event.endCoordinates.screenY;
+        const offset = restingBottomY.current - keyboardTopY;
+        Animated.timing(bottomPosition, {
+          toValue: Math.max(0, offset),
+          duration: event.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    const keyboardWillHide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      (event) => {
+        Animated.timing(bottomPosition, {
+          toValue: 0,
+          duration: event.duration || 250,
+          useNativeDriver: false,
+        }).start();
+      }
+    );
+
+    return () => {
+      keyboardWillShow.remove();
+      keyboardWillHide.remove();
+    };
+  }, [bottomPosition]);
+
   const handleCancel = useCallback(() => {
     Keyboard.dismiss();
     onCancel();
   }, [onCancel]);
 
-  const searchBarContent = (
-    <View style={styles.container}>
+  return (
+    <Animated.View
+      ref={containerRef}
+      onLayout={handleLayout}
+      style={[
+        styles.container,
+        {
+          bottom: bottomPosition,
+        },
+      ]}
+    >
       <View style={styles.inputContainer}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -62,7 +115,6 @@ export function SearchBar({
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
-          inputAccessoryViewID={Platform.OS === 'ios' ? INPUT_ACCESSORY_ID : undefined}
         />
         {value.length > 0 && (
           <TouchableOpacity onPress={() => onChangeText('')} style={styles.clearButton}>
@@ -75,34 +127,15 @@ export function SearchBar({
           <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
       )}
-    </View>
-  );
-
-  return (
-    <>
-      {/* Static search bar at bottom of screen (visible when keyboard is hidden) */}
-      <View style={styles.staticContainer}>
-        {searchBarContent}
-      </View>
-
-      {/* InputAccessoryView docks flush to keyboard on iOS */}
-      {Platform.OS === 'ios' && (
-        <InputAccessoryView nativeID={INPUT_ACCESSORY_ID}>
-          {searchBarContent}
-        </InputAccessoryView>
-      )}
-    </>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  staticContainer: {
+  container: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 0,
-  },
-  container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
