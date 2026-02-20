@@ -27,3 +27,5 @@ export type { UseDiscoveryReturn } from './useDiscovery';
 
 export { useRawgIdMatcher } from './useRawgIdMatcher';
 export type { UseRawgIdMatcherReturn } from './useRawgIdMatcher';
+
+export { useScreenshotDetector } from './useScreenshotDetector';

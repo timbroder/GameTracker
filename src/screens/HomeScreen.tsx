@@ -5,11 +5,12 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Alert, Keyboard } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import { GameList, EditModal, SearchBar, SearchResults } from '../components';
-import { useGames, useSupabaseSync } from '../hooks';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { GameList, EditModal, SearchBar, SearchResults, Top10Graphic } from '../components';
+import { useGames, useSupabaseSync, useScreenshotDetector } from '../hooks';
 import { searchGames } from '../services/rawgApi';
 import { addGame as addGameService, gameExists } from '../services/gameManager';
+import { captureAndShare } from '../services/screenshotShare';
 import type { Game, GameSearchResult, Platform } from '../types';
 import type { SwipeAction } from '../components/GameRow';
 import type { GameSection } from '../services/gameManager';
@@ -42,6 +43,45 @@ export function HomeScreen() {
       loadGames();
     }, [loadGames])
   );
+
+  // Screenshot share state
+  const isFocused = useIsFocused();
+  const [showTop10Graphic, setShowTop10Graphic] = useState(false);
+  const top10Ref = useRef<View>(null);
+  const top10ShortListRef = useRef<Game[]>([]);
+  const top10ToPlayRef = useRef<Game[]>([]);
+  const totalToPlayCountRef = useRef(0);
+
+  const handleScreenshot = useCallback(() => {
+    if (!isFocused) return;
+
+    const { shortList, unplayed } = sortedGames;
+    const totalGames = shortList.length + unplayed.length;
+    if (totalGames === 0) return;
+
+    Alert.alert('Share your Top 10?', 'Create a shareable graphic of your top games.', [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes',
+        onPress: () => {
+          const sliceCount = Math.min(shortList.length, 5);
+          const remaining = 10 - sliceCount;
+          top10ShortListRef.current = shortList.slice(0, sliceCount);
+          top10ToPlayRef.current = unplayed.slice(0, Math.max(0, remaining));
+          totalToPlayCountRef.current = unplayed.length;
+          setShowTop10Graphic(true);
+        },
+      },
+    ]);
+  }, [isFocused, sortedGames]);
+
+  useScreenshotDetector(handleScreenshot);
+
+  const handleTop10Ready = useCallback(() => {
+    captureAndShare(top10Ref)
+      .then(() => setShowTop10Graphic(false))
+      .catch(() => setShowTop10Graphic(false));
+  }, []);
 
   // Edit modal state
   const [editingGame, setEditingGame] = useState<Game | null>(null);
@@ -319,6 +359,20 @@ export function HomeScreen() {
         onToggleShortList={handleToggleShortList}
         onToggleSomedayMaybe={handleToggleSomedayMaybe}
       />
+
+      {/* Offscreen Top 10 graphic for capture */}
+      {showTop10Graphic && (
+        <View style={styles.offscreen} ref={top10Ref} collapsable={false}>
+          <Top10Graphic
+            shortList={top10ShortListRef.current}
+            toPlay={top10ToPlayRef.current}
+            totalToPlayCount={totalToPlayCountRef.current}
+            somedayMaybeCount={sortedGames.somedayMaybe.length}
+            completedCount={sortedGames.completed.length}
+            onReady={handleTop10Ready}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -327,6 +381,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  offscreen: {
+    position: 'absolute',
+    left: -9999,
   },
 });
 
