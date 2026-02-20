@@ -1,5 +1,8 @@
 /**
  * SearchBar - Persistent search bar at the bottom of the screen
+ *
+ * Uses InputAccessoryView on iOS to dock flush against the keyboard
+ * with zero gap. Falls back to manual positioning on Android.
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
@@ -10,10 +13,9 @@ import {
   TouchableOpacity,
   Text,
   Keyboard,
+  InputAccessoryView,
   Platform,
-  Animated,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface SearchBarProps {
   value: string;
@@ -23,7 +25,7 @@ export interface SearchBarProps {
   isActive: boolean;
 }
 
-const TAB_BAR_HEIGHT = 0; // Position at bottom of content area (above tab bar)
+const INPUT_ACCESSORY_ID = 'searchBarAccessory';
 
 export function SearchBar({
   value,
@@ -32,9 +34,7 @@ export function SearchBar({
   onCancel,
   isActive,
 }: SearchBarProps) {
-  const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
-  const bottomPosition = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (isActive && inputRef.current) {
@@ -42,52 +42,13 @@ export function SearchBar({
     }
   }, [isActive]);
 
-  useEffect(() => {
-    const keyboardWillShow = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      (event) => {
-        // Position search bar directly above keyboard
-        // Subtract safe area since keyboard height is from screen bottom
-        const keyboardTop = event.endCoordinates.height - insets.bottom;
-        Animated.timing(bottomPosition, {
-          toValue: keyboardTop,
-          duration: event.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
-    );
-
-    const keyboardWillHide = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      (event) => {
-        Animated.timing(bottomPosition, {
-          toValue: 0,
-          duration: event.duration || 250,
-          useNativeDriver: false,
-        }).start();
-      }
-    );
-
-    return () => {
-      keyboardWillShow.remove();
-      keyboardWillHide.remove();
-    };
-  }, [bottomPosition, insets.bottom]);
-
   const handleCancel = useCallback(() => {
     Keyboard.dismiss();
     onCancel();
   }, [onCancel]);
 
-  return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          bottom: bottomPosition,
-        },
-      ]}
-    >
+  const searchBarContent = (
+    <View style={styles.container}>
       <View style={styles.inputContainer}>
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -101,6 +62,7 @@ export function SearchBar({
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
+          inputAccessoryViewID={Platform.OS === 'ios' ? INPUT_ACCESSORY_ID : undefined}
         />
         {value.length > 0 && (
           <TouchableOpacity onPress={() => onChangeText('')} style={styles.clearButton}>
@@ -113,20 +75,38 @@ export function SearchBar({
           <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
       )}
-    </Animated.View>
+    </View>
+  );
+
+  return (
+    <>
+      {/* Static search bar at bottom of screen (visible when keyboard is hidden) */}
+      <View style={styles.staticContainer}>
+        {searchBarContent}
+      </View>
+
+      {/* InputAccessoryView docks flush to keyboard on iOS */}
+      {Platform.OS === 'ios' && (
+        <InputAccessoryView nativeID={INPUT_ACCESSORY_ID}>
+          {searchBarContent}
+        </InputAccessoryView>
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  staticContainer: {
     position: 'absolute',
     left: 0,
     right: 0,
+    bottom: 0,
+  },
+  container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingTop: 8,
-    paddingBottom: 0,
+    paddingVertical: 8,
     backgroundColor: '#111',
     borderTopWidth: 1,
     borderTopColor: '#333',
