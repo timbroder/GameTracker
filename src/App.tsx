@@ -14,6 +14,7 @@ import { TabNavigator } from './navigation';
 import { setApiKey } from './services/rawgApi';
 import { runDuplicateMigration } from './services/migrateDuplicates';
 import { runSomedayMaybeMigration } from './services/migrateSomedayMaybe';
+import { runToPlayToSomedayMaybeMigration } from './services/migrateToPlayToSomedayMaybe';
 import { ApiKeyScreen } from './screens/ApiKeyScreen';
 import { STORAGE_KEYS } from './types/storage';
 import { HOT_UPDATER_URL } from './config';
@@ -35,6 +36,7 @@ function App(): React.JSX.Element {
       // Run one-time migrations
       runDuplicateMigration().catch(() => {});
       runSomedayMaybeMigration().catch(() => {});
+      runToPlayToSomedayMaybeMigration().catch(() => {});
     }
 
     init();
