@@ -16,7 +16,7 @@ import { runDuplicateMigration } from './services/migrateDuplicates';
 import { runSomedayMaybeMigration } from './services/migrateSomedayMaybe';
 import { ApiKeyScreen } from './screens/ApiKeyScreen';
 import { STORAGE_KEYS } from './types/storage';
-import { HOT_UPDATER_URL } from './config/secrets';
+import { HOT_UPDATER_URL } from './config';
 
 function App(): React.JSX.Element {
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);

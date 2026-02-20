@@ -2,7 +2,9 @@
  * App configuration
  */
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY, SYNC_USER_ID_DEV, SYNC_USER_ID_PROD } from './secrets';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, SYNC_USER_ID_DEV, SYNC_USER_ID_PROD, HOT_UPDATER_URL } from './secrets';
+
+export { HOT_UPDATER_URL };
 
 /**
  * App version - bump this when deploying OTA updates
