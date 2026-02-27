@@ -1,5 +1,8 @@
 /**
  * SearchBar - Persistent search bar at the bottom of the screen
+ *
+ * Uses measureInWindow to calculate exact keyboard offset, ensuring
+ * zero gap between the search bar and keyboard on any device.
  */
 
 import React, { useRef, useEffect, useCallback } from 'react';
@@ -13,7 +16,6 @@ import {
   Platform,
   Animated,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface SearchBarProps {
   value: string;
@@ -23,8 +25,6 @@ export interface SearchBarProps {
   isActive: boolean;
 }
 
-const TAB_BAR_HEIGHT = 0; // Position at bottom of content area (above tab bar)
-
 export function SearchBar({
   value,
   onChangeText,
@@ -32,9 +32,10 @@ export function SearchBar({
   onCancel,
   isActive,
 }: SearchBarProps) {
-  const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
+  const containerRef = useRef<View>(null);
   const bottomPosition = useRef(new Animated.Value(0)).current;
+  const restingBottomY = useRef(0);
 
   useEffect(() => {
     if (isActive && inputRef.current) {
@@ -42,16 +43,27 @@ export function SearchBar({
     }
   }, [isActive]);
 
+  // Measure the resting screen position once on initial layout
+  const measured = useRef(false);
+  const handleLayout = useCallback(() => {
+    if (measured.current) return;
+    measured.current = true;
+    requestAnimationFrame(() => {
+      containerRef.current?.measureInWindow((_x, y, _width, height) => {
+        restingBottomY.current = y + height;
+      });
+    });
+  }, []);
+
   useEffect(() => {
     const keyboardWillShow = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       (event) => {
-        // Position search bar directly above keyboard
-        // Subtract safe area since keyboard height is from screen bottom
-        const keyboardTop = event.endCoordinates.height - insets.bottom;
+        const keyboardTopY = event.endCoordinates.screenY;
+        const offset = restingBottomY.current - keyboardTopY;
         Animated.timing(bottomPosition, {
-          toValue: keyboardTop,
-          duration: event.duration || 250,
+          toValue: Math.max(0, offset),
+          duration: 100,
           useNativeDriver: false,
         }).start();
       }
@@ -59,10 +71,10 @@ export function SearchBar({
 
     const keyboardWillHide = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      (event) => {
+      () => {
         Animated.timing(bottomPosition, {
           toValue: 0,
-          duration: event.duration || 250,
+          duration: 100,
           useNativeDriver: false,
         }).start();
       }
@@ -72,7 +84,7 @@ export function SearchBar({
       keyboardWillShow.remove();
       keyboardWillHide.remove();
     };
-  }, [bottomPosition, insets.bottom]);
+  }, [bottomPosition]);
 
   const handleCancel = useCallback(() => {
     Keyboard.dismiss();
@@ -81,6 +93,8 @@ export function SearchBar({
 
   return (
     <Animated.View
+      ref={containerRef}
+      onLayout={handleLayout}
       style={[
         styles.container,
         {
@@ -110,7 +124,7 @@ export function SearchBar({
       </View>
       {isActive && (
         <TouchableOpacity onPress={handleCancel} style={styles.cancelButton}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={styles.cancelButtonText}>Done</Text>
         </TouchableOpacity>
       )}
     </Animated.View>
