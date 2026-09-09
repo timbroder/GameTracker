@@ -3,6 +3,7 @@
  */
 
 import type { Game } from '../types';
+import type { SortMode } from '../types/storage';
 
 export interface SortedGames {
   shortList: Game[];
@@ -11,12 +12,15 @@ export interface SortedGames {
   completed: Game[];
 }
 
+const alphabeticalSort = (a: Game, b: Game) =>
+  a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+
 /**
  * Sort games into unplayed and completed sections
- * - Unplayed: sorted by sortOrder ascending
- * - Completed: sorted by completedDate descending (most recent first)
+ * - manual: sortOrder ascending / completedDate descending
+ * - alphabetical: A-Z by name within each section
  */
-export function sortGames(games: Game[]): SortedGames {
+export function sortGames(games: Game[], sortMode: SortMode = 'manual'): SortedGames {
   // Single-pass bucketing instead of 4 separate filter passes
   const shortList: Game[] = [];
   const unplayed: Game[] = [];
@@ -35,14 +39,21 @@ export function sortGames(games: Game[]): SortedGames {
     }
   }
 
-  shortList.sort((a, b) => a.sortOrder - b.sortOrder);
-  unplayed.sort((a, b) => a.sortOrder - b.sortOrder);
-  somedayMaybe.sort((a, b) => a.sortOrder - b.sortOrder);
-  completed.sort((a, b) => {
-    const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0;
-    const dateB = b.completedDate ? new Date(b.completedDate).getTime() : 0;
-    return dateB - dateA;
-  });
+  if (sortMode === 'alphabetical') {
+    shortList.sort(alphabeticalSort);
+    unplayed.sort(alphabeticalSort);
+    somedayMaybe.sort(alphabeticalSort);
+    completed.sort(alphabeticalSort);
+  } else {
+    shortList.sort((a, b) => a.sortOrder - b.sortOrder);
+    unplayed.sort((a, b) => a.sortOrder - b.sortOrder);
+    somedayMaybe.sort((a, b) => a.sortOrder - b.sortOrder);
+    completed.sort((a, b) => {
+      const dateA = a.completedDate ? new Date(a.completedDate).getTime() : 0;
+      const dateB = b.completedDate ? new Date(b.completedDate).getTime() : 0;
+      return dateB - dateA;
+    });
+  }
 
   return { shortList, unplayed, somedayMaybe, completed };
 }

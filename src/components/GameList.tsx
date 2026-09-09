@@ -19,6 +19,7 @@ import DraggableFlatList, {
 } from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import type { Game } from '../types';
+import type { SortMode } from '../types/storage';
 import { GameRow, GAME_ROW_HEIGHT, type SwipeAction } from './GameRow';
 import { SkeletonLoader } from './SkeletonRow';
 import type { SortedGames } from '../utils/sorting';
@@ -49,10 +50,12 @@ const SKELETON_COUNT = 6;
 
 export interface GameListProps {
   sortedGames: SortedGames;
+  sortMode: SortMode;
   loading: boolean;
   error: string | null;
   onReorder: (shortListIds: string[], toPlayIds: string[], somedayMaybeIds: string[]) => Promise<void>;
   onSwipe: (gameId: string, action: SwipeAction) => Promise<void>;
+  onToggleSortMode: () => void;
   onInfo?: (gameId: string) => void;
   onRetry?: () => void;
 }
@@ -128,13 +131,16 @@ const MAX_SHORT_LIST = 5;
 
 export function GameList({
   sortedGames,
+  sortMode,
   loading,
   error,
   onReorder,
   onSwipe,
+  onToggleSortMode,
   onInfo,
   onRetry,
 }: GameListProps) {
+  const isAlphabetical = sortMode === 'alphabetical';
   const { shortList, unplayed, somedayMaybe, completed } = sortedGames;
 
   // Combine short list, unplayed, and someday maybe into single draggable array
@@ -222,7 +228,7 @@ export function GameList({
       return (
         <>
           {header}
-          <Pressable onLongPress={drag} delayLongPress={200}>
+          <Pressable onLongPress={isAlphabetical ? undefined : drag} delayLongPress={200}>
             <GameRow
               game={item}
               index={sectionIndex}
@@ -236,7 +242,7 @@ export function GameList({
         </>
       );
     },
-    [onSwipe, onInfo, boundary1, boundary2, shortListCount, unplayedCount, somedayMaybeCount]
+    [onSwipe, onInfo, boundary1, boundary2, shortListCount, unplayedCount, somedayMaybeCount, isAlphabetical]
   );
 
   const keyExtractor = useCallback((item: Game) => item.id, []);
@@ -308,7 +314,22 @@ export function GameList({
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         onDragEnd={handleDragEnd}
-        ListHeaderComponent={<ShortListHeader count={shortListCount} />}
+        ListHeaderComponent={
+          <>
+            <View style={styles.sortToggleRow}>
+              <TouchableOpacity
+                style={styles.sortToggleButton}
+                onPress={onToggleSortMode}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.sortToggleText}>
+                  {isAlphabetical ? 'A-Z' : 'Custom'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <ShortListHeader count={shortListCount} />
+          </>
+        }
         ListFooterComponent={ListFooter}
         ListEmptyComponent={
           completed.length > 0 ? (
@@ -396,6 +417,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  sortToggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  sortToggleButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: '#222',
+    borderWidth: 1,
+    borderColor: '#444',
+  },
+  sortToggleText: {
+    color: '#aaa',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
 

@@ -20,6 +20,7 @@ export function HomeScreen() {
   const {
     games,
     sortedGames,
+    sortMode,
     loading,
     error,
     loadGames,
@@ -28,6 +29,7 @@ export function HomeScreen() {
     toggleShortList,
     moveGameToSection,
     deleteGame,
+    toggleSortMode,
   } = useGames();
 
   // Supabase sync
@@ -329,10 +331,12 @@ export function HomeScreen() {
       {/* Game list */}
       <GameList
         sortedGames={sortedGames}
+        sortMode={sortMode}
         loading={loading}
         error={error}
         onReorder={handleReorder}
         onSwipe={handleSwipe}
+        onToggleSortMode={toggleSortMode}
         onInfo={handleInfo}
         onRetry={loadGames}
       />

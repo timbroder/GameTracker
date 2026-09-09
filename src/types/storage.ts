@@ -9,10 +9,12 @@ export const STORAGE_KEYS = {
   USER_PREFS: '@gametracker:prefs',
   PENDING_DELETIONS: '@gametracker:pendingDeletions',
   RAWG_API_KEY: '@gametracker:rawg_api_key',
+  SORT_MODE: '@gametracker:sort_mode',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
+export type SortMode = 'manual' | 'alphabetical';
 export type SortCompletedBy = 'completedDate' | 'name';
 export type ColorScheme = 'vibrant' | 'pastel';
 
